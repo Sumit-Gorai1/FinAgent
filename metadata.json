@@ -1,0 +1,6 @@
+{
+  "name": "FINAGENT — Autonomous Multi-Agent Stock Research",
+  "description": "Autonomous multi-agent stock research and dynamic portfolio intelligence platform featuring direct NSE and BSE market data pipeline integration, dual-exchange quotes, inter-exchange arbitrage monitoring, Level-2 depth, valuation sensitivity modeling, Autonomous Rebalancer, Paper Trading Lab, and Stripe subscription billing gateway.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
