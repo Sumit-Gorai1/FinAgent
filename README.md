@@ -17,6 +17,8 @@ Rather than relying on generic black-box predictions, FINAGENT deploys an **Orch
 
 FINAGENT combines real-time streaming market data, 6-digit BSE scrip resolution, Level-2 depth monitoring, autonomous portfolio rebalancing, a simulated paper trading lab, real-time price threshold alerts with sound notifications, and multi-rail Indian payment gateway integration (Razorpay, UPI, Stripe).
 
+👉 **[View Full Dashboard Snapshots & Visual Architecture Guide (DASHBOARD_SNAPSHOTS.md)](./DASHBOARD_SNAPSHOTS.md)**
+
 ---
 
 ## 🏛️ Multi-Agent Architecture
