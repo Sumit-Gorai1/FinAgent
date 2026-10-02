@@ -15,7 +15,6 @@ import {
   Mail,
   User,
   LogOut,
-  Crown,
   CreditCard,
   X,
   Radio,
@@ -23,14 +22,15 @@ import {
   Building2,
   CornerDownLeft,
   LayoutGrid,
+  Layers,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { DynamicLogo } from './DynamicLogo';
 import { searchStockCatalog, resolveStockQuery, INDIAN_STOCKS_MASTER, getMatchSegments } from '../utils/stockSearchResolver';
 
 interface HeaderProps {
-  activeView: 'research' | 'workflow' | 'watchlist' | 'portfolio' | 'papertrading' | 'pricing' | 'all-stocks' | 'sectors';
-  setActiveView: (view: 'research' | 'workflow' | 'watchlist' | 'portfolio' | 'papertrading' | 'pricing' | 'all-stocks' | 'sectors') => void;
+  activeView: 'research' | 'workflow' | 'watchlist' | 'portfolio' | 'papertrading' | 'all-stocks' | 'sectors';
+  setActiveView: (view: 'research' | 'workflow' | 'watchlist' | 'portfolio' | 'papertrading' | 'all-stocks' | 'sectors') => void;
   selectedSymbol: string;
   onSearchSymbol: (sym: string) => void;
   onOpenCompliance: () => void;
@@ -40,6 +40,7 @@ interface HeaderProps {
   onOpenBugAgent?: () => void;
   onOpenPipeline?: () => void;
   onOpenIndianStocksModal?: () => void;
+  onOpenSnapshots?: () => void;
   user?: UserProfile | null;
   onOpenLogin?: () => void;
   onLogout?: () => void;
@@ -157,6 +158,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenBugAgent,
   onOpenPipeline,
   onOpenIndianStocksModal,
+  onOpenSnapshots,
   user,
   onOpenLogin,
   onLogout,
@@ -400,19 +402,17 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Pricing & Subscription Hub Button */}
-          <button
-            onClick={() => setActiveView('pricing')}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono transition-all shadow-sm ${
-              activeView === 'pricing'
-                ? 'bg-amber-500 text-slate-950 font-bold border border-amber-400'
-                : 'bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-700/70'
-            }`}
-            title="Subscription Model & Payment Gateway"
-          >
-            <Crown className="w-3 h-3 text-amber-400 fill-amber-400/30" />
-            <span className="font-semibold">Pricing & Plans</span>
-          </button>
+          {onOpenSnapshots && (
+            <button
+              id="header-snapshots-btn"
+              onClick={onOpenSnapshots}
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/90 hover:bg-cyan-900 text-cyan-300 border border-cyan-700/70 text-[11px] font-mono transition-colors shadow-sm"
+              title="View Interactive Dashboard Snapshots & Visual Architecture Guide"
+            >
+              <Layers className="w-3 h-3 text-cyan-400" />
+              <span className="font-semibold">Snapshots</span>
+            </button>
+          )}
 
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 text-[11px] font-mono">
             <Cpu className="w-3 h-3 text-cyan-400" />
@@ -436,8 +436,8 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
                 <span className="truncate max-w-[130px] font-semibold text-cyan-300">{user.email}</span>
-                <span className="px-1 py-0.2 bg-cyan-950 text-cyan-300 rounded text-[9px] font-bold border border-cyan-800">
-                  {user.tier === 'PRO_INVESTOR' ? 'PRO' : user.tier}
+                <span className="px-1 py-0.2 bg-emerald-950 text-emerald-300 rounded text-[9px] font-bold border border-emerald-800">
+                  ACTIVE
                 </span>
               </button>
               {onLogout && (
@@ -720,18 +720,6 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Activity className="w-3.5 h-3.5" />
               Paper Trade & Backtest
-            </button>
-
-            <button
-              onClick={() => setActiveView('pricing')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
-                activeView === 'pricing'
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-sm font-bold'
-                  : 'text-amber-400/90 hover:text-amber-300'
-              }`}
-            >
-              <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400/30" />
-              Pricing & Pro
             </button>
           </div>
         </div>

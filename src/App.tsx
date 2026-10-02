@@ -15,15 +15,15 @@ import { BugAgentModal } from './components/BugAgentModal';
 import { NseBsePipelineModal } from './components/NseBsePipelineModal';
 import { AuthModal } from './components/AuthModal';
 import { DynamicMarketStrip } from './components/DynamicMarketStrip';
-import { SubscriptionBillingHub } from './components/SubscriptionBillingHub';
 import { IndianExchangeStocksModal } from './components/IndianExchangeStocksModal';
 import { IndianStocksDirectoryView } from './components/IndianStocksDirectoryView';
 import { SectorHeatmap } from './components/SectorHeatmap';
+import { DashboardSnapshotsModal } from './components/DashboardSnapshotsModal';
 import { playAlertChime } from './utils/soundAlert';
 
 export default function App() {
   const [activeView, setActiveView] = React.useState<
-    'research' | 'workflow' | 'watchlist' | 'portfolio' | 'papertrading' | 'pricing' | 'all-stocks' | 'sectors'
+    'research' | 'workflow' | 'watchlist' | 'portfolio' | 'papertrading' | 'all-stocks' | 'sectors'
   >('research');
 
   const [stocks, setStocks] = React.useState<Record<string, StockResearchData>>(() => {
@@ -52,6 +52,7 @@ export default function App() {
   const [showPipelineModal, setShowPipelineModal] = React.useState<boolean>(false);
   const [showAuthModal, setShowAuthModal] = React.useState<boolean>(false);
   const [showIndianStocksModal, setShowIndianStocksModal] = React.useState<boolean>(false);
+  const [showSnapshotsModal, setShowSnapshotsModal] = React.useState<boolean>(false);
   const [currentUser, setCurrentUser] = React.useState<UserProfile | null>(() => {
     try {
       const saved = localStorage.getItem('finagent_user');
@@ -75,73 +76,6 @@ export default function App() {
     } catch {}
   };
 
-  const handleUpdateUserSubscription = (
-    subscription: UserSubscription,
-    tier: 'PRO_INVESTOR' | 'INSTITUTIONAL' | 'RETAIL'
-  ) => {
-    setCurrentUser((prev) => {
-      const updated: UserProfile = prev
-        ? { ...prev, tier, subscription }
-        : {
-            id: 'user_subscribed',
-            email: 'investor@finagent.ai',
-            displayName: 'Quant Investor',
-            tier,
-            loginMethod: 'MAGIC_LINK',
-            lastLogin: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
-            subscription,
-          };
-      try {
-        localStorage.setItem('finagent_user', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-  };
-
-  // Check URL query parameters for Stripe checkout redirect
-  React.useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const sessionId = params.get('session_id');
-      const plan = params.get('plan');
-      const paymentStatus = params.get('payment');
-
-      if (sessionId || paymentStatus === 'success') {
-        const verifyPayment = async () => {
-          try {
-            const res = await fetch('/api/subscription/verify-session', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                sessionId,
-                planId: plan || 'pro',
-                userEmail: currentUser?.email || 'investor@finagent.ai',
-              }),
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.subscription) {
-                const tier =
-                  plan === 'institutional'
-                    ? 'INSTITUTIONAL'
-                    : plan === 'pro'
-                    ? 'PRO_INVESTOR'
-                    : 'RETAIL';
-                handleUpdateUserSubscription(data.subscription, tier);
-                setActiveView('pricing');
-              }
-            }
-          } catch (e) {
-            console.warn('Payment verification error:', e);
-          }
-        };
-        verifyPayment();
-        // Clean URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    } catch {}
-  }, []);
   const [paperOrders, setPaperOrders] = React.useState<PaperOrder[]>([
     {
       id: 'ORD-78901',
@@ -1179,6 +1113,7 @@ export default function App() {
         onOpenBugAgent={() => setShowBugAgentModal(true)}
         onOpenPipeline={() => setShowPipelineModal(true)}
         onOpenIndianStocksModal={() => setShowIndianStocksModal(true)}
+        onOpenSnapshots={() => setShowSnapshotsModal(true)}
         user={currentUser}
         onOpenLogin={() => setShowAuthModal(true)}
         onLogout={handleLogout}
@@ -1291,14 +1226,6 @@ export default function App() {
             onExecuteOrder={handleExecuteOrder}
           />
         )}
-
-        {activeView === 'pricing' && (
-          <SubscriptionBillingHub
-            user={currentUser}
-            onUpdateUserSubscription={handleUpdateUserSubscription}
-            onOpenLoginModal={() => setShowAuthModal(true)}
-          />
-        )}
       </main>
 
       {/* Compliance / SEBI Notice Modal */}
@@ -1362,6 +1289,16 @@ export default function App() {
         currentSymbol={selectedSymbol}
       />
 
+      {/* Dashboard Snapshots & Visual Architecture Modal */}
+      <DashboardSnapshotsModal
+        isOpen={showSnapshotsModal}
+        onClose={() => setShowSnapshotsModal(false)}
+        onNavigateView={(v) => {
+          setActiveView(v);
+          setShowSnapshotsModal(false);
+        }}
+      />
+
       {/* Real-time Price Alert Notification Toast Stack */}
       <PriceAlertNotificationBanner
         notifications={alertNotifications}
@@ -1380,6 +1317,13 @@ export default function App() {
           <span>Stock Research & Portfolio Intelligence</span>
         </div>
         <div className="flex items-center gap-4 text-[11px]">
+          <button
+            onClick={() => setShowSnapshotsModal(true)}
+            className="text-slate-400 hover:text-cyan-400 underline underline-offset-2 flex items-center gap-1 cursor-pointer"
+          >
+            Dashboard Snapshots
+          </button>
+          <span>•</span>
           <button
             onClick={() => setShowComplianceModal(true)}
             className="text-slate-400 hover:text-cyan-400 underline underline-offset-2"

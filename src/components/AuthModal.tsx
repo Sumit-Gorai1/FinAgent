@@ -217,8 +217,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <h4 className="text-sm font-semibold text-white truncate font-mono">
                       {user.email}
                     </h4>
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded">
-                      {user.tier === 'PRO_INVESTOR' ? 'PRO' : user.tier}
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded">
+                      ACTIVE MEMBER
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">

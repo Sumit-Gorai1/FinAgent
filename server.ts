@@ -11,17 +11,6 @@ import {
   ACTUAL_MARKET_PRICES,
 } from './server/bugAgent';
 import {
-  handleGetPlans,
-  handleCreateCheckoutSession,
-  handleGetSubscriptionStatus,
-  handleCancelSubscription,
-  handleVerifySession,
-  handleStripeWebhook,
-  handleRazorpayCreateOrder,
-  handleRazorpayVerifyPayment,
-  handleUpiCollectRequest,
-} from './server/stripeBilling';
-import {
   handleGetPipelineStatus,
   handleGetPipelineIndices,
   handleGetPipelineQuote,
@@ -62,6 +51,52 @@ async function startServer() {
   });
 
   app.use(express.json());
+
+  // Static serving for dashboard snapshots and visual assets
+  const publicAssetsDir = path.join(process.cwd(), 'public/assets');
+  const rootAssetsDir = path.join(process.cwd(), 'assets');
+  const srcAssetsImagesDir = path.join(process.cwd(), 'src/assets/images');
+
+  if (fs.existsSync(publicAssetsDir)) {
+    app.use('/assets', express.static(publicAssetsDir));
+    app.use('/public/assets', express.static(publicAssetsDir));
+  }
+  if (fs.existsSync(rootAssetsDir)) {
+    app.use('/assets', express.static(rootAssetsDir));
+  }
+  if (fs.existsSync(srcAssetsImagesDir)) {
+    app.use('/src/assets/images', express.static(srcAssetsImagesDir));
+  }
+
+  // Dashboard snapshots metadata endpoint
+  app.get('/api/dashboard-snapshots', (req, res) => {
+    res.json({
+      success: true,
+      snapshots: [
+        {
+          id: 'research',
+          title: 'Multi-Agent Stock Research Cockpit',
+          description: 'Real-time multi-agent research terminal featuring live tick price feeds, 10-agent consensus scorecard, interactive candlestick charting, moving average bands, and level-2 depth.',
+          image: '/assets/research_cockpit.jpg',
+          route: 'research',
+        },
+        {
+          id: 'portfolio',
+          title: 'Institutional Portfolio Intelligence & Heartbeat Monitor',
+          description: 'Asset allocation metrics, P&L tracking, sector risk exposure distribution, portfolio health monitoring, and automated execution rebalancing.',
+          image: '/assets/portfolio_cockpit.jpg',
+          route: 'portfolio',
+        },
+        {
+          id: 'sectors',
+          title: 'Industry Sector Performance Heatmap',
+          description: 'Real-time sector performance tree-map visualizer grouping equities into canonical Indian industries with live capital flow indicators.',
+          image: '/assets/sector_heatmap.jpg',
+          route: 'sectors',
+        },
+      ],
+    });
+  });
 
   // Lazy Gemini client helper
   let aiClient: GoogleGenAI | null = null;
@@ -1026,37 +1061,6 @@ Return strictly valid JSON with this exact schema:
     }
     return res.json({ success: true, message: 'Logged out successfully.' });
   });
-
-  // ==========================================
-  // SUBSCRIPTION & INR PAYMENT GATEWAY API (RAZORPAY, UPI, STRIPE)
-  // ==========================================
-
-  // 1. Get available subscription tiers and gateway capabilities (INR)
-  app.get('/api/subscription/plans', handleGetPlans);
-
-  // 2. Razorpay Indian Gateway: Create Order in INR Paise
-  app.post('/api/subscription/razorpay/create-order', handleRazorpayCreateOrder);
-
-  // 3. Razorpay Indian Gateway: Verify Payment Signature & Issue GST Invoice
-  app.post('/api/subscription/razorpay/verify-payment', handleRazorpayVerifyPayment);
-
-  // 4. UPI Collect Request (Google Pay, PhonePe, Paytm, BHIM)
-  app.post('/api/subscription/upi/collect-request', handleUpiCollectRequest);
-
-  // 5. Stripe INR Checkout Session or Sandbox Gateway
-  app.post('/api/subscription/checkout', handleCreateCheckoutSession);
-
-  // 6. Get active user subscription and invoices
-  app.get('/api/subscription/status', handleGetSubscriptionStatus);
-
-  // 7. Verify checkout session (post-redirect or instant test verification)
-  app.post('/api/subscription/verify-session', handleVerifySession);
-
-  // 8. Cancel subscription
-  app.post('/api/subscription/cancel', handleCancelSubscription);
-
-  // 9. Webhook handler
-  app.post('/api/subscription/webhook', handleStripeWebhook);
 
   // Vite development middleware or static production serving
   if (process.env.NODE_ENV !== 'production') {

@@ -7,19 +7,19 @@ This document provides a comprehensive visual reference, component blueprint, an
 ## 📸 Executive Visual Showcase
 
 ### 1. Multi-Agent Stock Research Cockpit
-![FINAGENT Stock Research Cockpit](/assets/research_cockpit.jpg)
+![FINAGENT Stock Research Cockpit](./public/assets/research_cockpit.jpg)
 *Real-time multi-agent research terminal featuring live tick price feeds, 10-agent consensus scorecard, interactive candlestick charting, moving average bands, and level-2 depth.*
 
 ---
 
 ### 2. Institutional Portfolio Intelligence & Heartbeat Monitor
-![FINAGENT Portfolio Intelligence](/assets/portfolio_cockpit.jpg)
+![FINAGENT Portfolio Intelligence](./public/assets/portfolio_cockpit.jpg)
 *Asset allocation metrics, P&L tracking, sector risk exposure distribution, portfolio health monitoring, and automated execution rebalancing.*
 
 ---
 
 ### 3. Industry Sector Performance Heatmap
-![FINAGENT Sector Heatmap](/assets/sector_heatmap.jpg)
+![FINAGENT Sector Heatmap](./public/assets/sector_heatmap.jpg)
 *Real-time sector performance tree-map visualizer grouping equities into canonical Indian industries with live capital flow indicators.*
 
 ---
@@ -268,37 +268,7 @@ This document provides a comprehensive visual reference, component blueprint, an
 
 ---
 
-### Snapshot 8: Multi-Gateway Subscription & Billing Hub (`SubscriptionBillingHub.tsx`)
-
-#### Wireframe Blueprint:
-```
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ 💳 SUBSCRIPTION BILLING & COMMERCIAL GATEWAY HUB                                                      │
-│ Manage enterprise tiers, Razorpay INR gateways, UPI collect requests, and GST invoices.               │
-├────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ ACTIVE SUBSCRIPTION: PRO QUANT INVESTOR  [● ACTIVE]  │  Billing Cycle: ₹3,999 / Month (INR)            │
-├──────────────────────────┬──────────────────────────┬──────────────────────────────────────────────────┤
-│ RETAIL INVESTOR          │ PRO QUANT INVESTOR       │ INSTITUTIONAL DESK                               │
-│ ₹999 / Month             │ ₹3,999 / Month (Current) │ ₹14,999 / Month                                  │
-│ • Daily Consensus Scores │ • All 2,570+ Equities    │ • Full 10-Agent Raw Telemetry                    │
-│ • 5 Watchlist Securities │ • Agent 14 Rebalancer    │ • Real-Time SSE WebSocket Tick Feeds             │
-│ • Basic Technical Charts │ • Real-Time Fresh News   │ • Direct API Access & Webhooks                   │
-│ [Select Tier]            │ [Current Active Plan]    │ [Upgrade to Institutional]                       │
-├──────────────────────────┴──────────────────────────┴──────────────────────────────────────────────────┤
-│ INTEGRATED INDIAN PAYMENT RAILS:                                                                       │
-│ [🟢 Razorpay Checkout]   [📱 UPI Collect (GPay / PhonePe / Paytm)]   [💳 Stripe Global Card Gateway]    │
-│ [⚡ Instant Sandbox Test Activation (One-Click Testing for Evaluators)]                                 │
-└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-#### Key Capabilities & Elements:
-- **Native INR Payments**: Direct integration with Razorpay orders in INR paise and UPI collect protocols.
-- **GST Invoicing**: Downloadable tax-compliant invoices with GSTIN identification.
-- **Sandbox Validator**: One-click test validation allowing evaluators to experience pro tier features immediately.
-
----
-
-### Snapshot 9: Autonomous Bug Agent & System Self-Healing (`BugAgentModal.tsx`)
+### Snapshot 8: Autonomous Bug Agent & System Self-Healing (`BugAgentModal.tsx`)
 
 #### Wireframe Blueprint:
 ```

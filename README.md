@@ -138,23 +138,14 @@ FINAGENT mirrors an institutional hedge fund research department. Each agent run
 - Limit and market paper order routing with simulated execution, slippage, and P&L tracking.
 - Quantitative backtesting engine testing multi-agent alpha strategies over 1–5 year horizons against the NIFTY 50 benchmark.
 
-### 8. Subscription Billing & Payment Gateway Hub (`SubscriptionBillingHub`)
-- Three commercial subscription tiers: **Retail Investor**, **Pro Quant Investor**, and **Institutional Desk**.
-- Native multi-currency Indian Rupee (INR) payment processing:
-  - **Razorpay**: Direct INR gateway with auto-generated order IDs, checkout modal integration, and GST invoicing.
-  - **UPI Collect**: Support for Google Pay, PhonePe, Paytm, and BHIM VPA handles.
-  - **Stripe**: International and domestic card checkout sessions.
-  - **Instant Sandbox Simulator**: One-click test validation for immediate demo provisioning.
-
-### 9. Autonomous System Bug Agent (`BugAgentModal` & `server/bugAgent.ts`)
+### 8. Autonomous System Bug Agent (`BugAgentModal` & `server/bugAgent.ts`)
 - Built-in self-healing diagnostic agent.
 - Scans system files, verifies quote endpoints, benchmarks live market prices, and detects schema discrepancies.
 - One-click "Auto-Fix All" button for automated platform self-repair.
 
-### 10. Authentication & Security (`AuthModal`)
+### 9. Authentication & Security (`AuthModal`)
 - Email authentication with 6-digit OTP verification and secure password login.
 - Session persistence via LocalStorage and Bearer token headers.
-- Tier entitlement synchronization.
 
 ---
 
@@ -191,18 +182,6 @@ The application runs a unified full-stack architecture powered by Express and Vi
 | `POST` | `/api/portfolio/rebalance-advisor` | Agent 14 quantitative portfolio rebalancing engine |
 | `POST` | `/api/paper-trade` | Virtual paper trade execution and order logging |
 | `POST` | `/api/backtest` | Multi-year strategy backtest simulation against NIFTY 50 |
-
-### Subscriptions & Indian Payment Gateways
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/subscription/plans` | Active subscription tiers and payment gateway capabilities |
-| `POST` | `/api/subscription/razorpay/create-order` | Create Razorpay order in INR Paise |
-| `POST` | `/api/subscription/razorpay/verify-payment` | Verify Razorpay HMAC signature and generate GST invoice |
-| `POST` | `/api/subscription/upi/collect-request` | Dispatch UPI collect request (PhonePe, GPay, Paytm) |
-| `POST` | `/api/subscription/checkout` | Create Stripe checkout session |
-| `GET` | `/api/subscription/status` | Retrieve active subscription tier, dates, and billing history |
-| `POST` | `/api/subscription/verify-session` | Verify completed session and upgrade account tier |
-| `POST` | `/api/subscription/cancel` | Cancel active recurring subscription |
 
 ### Autonomous Bug Agent
 | Method | Endpoint | Description |
