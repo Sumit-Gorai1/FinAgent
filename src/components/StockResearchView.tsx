@@ -437,48 +437,6 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
         </div>
       </div>
 
-      {/* Fast Instrument Switch Ribbon & Directory Ingress (Unified search handled via sticky header above) */}
-      <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-lg">
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
-          <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider shrink-0 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Quick Switch:</span>
-          </span>
-          {['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'TATAMOTORS', 'ICICIBANK', 'SBIN', 'MARUTI', 'BAJFINANCE', 'LT', 'ITC', 'TITAN'].map((sym) => {
-            const isActive = stock.symbol === sym;
-            return (
-              <button
-                key={sym}
-                type="button"
-                onClick={() => handleSelectStock(sym)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all shrink-0 ${
-                  isActive
-                    ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-900/50'
-                    : 'bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800 hover:border-slate-700'
-                }`}
-              >
-                {sym}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* All Listed Companies Directory Action */}
-        {onOpenIndianStocksModal && (
-          <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap text-xs font-mono scrollbar-none shrink-0">
-            <button
-              type="button"
-              onClick={onOpenIndianStocksModal}
-              className="px-3 py-1.5 rounded-xl border border-emerald-500/60 bg-emerald-950/70 text-emerald-300 hover:bg-emerald-900/80 hover:text-white text-xs font-mono font-bold transition-all flex items-center gap-1.5 shadow-sm shadow-emerald-950"
-              title="Open full searchable database of all 2,570+ Indian equities"
-            >
-              <Building2 className="w-4 h-4 text-emerald-400" />
-              <span>Browse All 2,570+ Stocks Directory →</span>
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* Thesis Change Warning Banner if Active */}
       {stock.thesisChanged && stock.thesisChangeAlert && (
         <div className="p-4 rounded-xl bg-gradient-to-r from-rose-950/70 via-slate-900 to-rose-950/40 border border-rose-700/60 shadow-lg flex items-start gap-3">

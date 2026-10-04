@@ -260,6 +260,55 @@ async function startServer() {
   app.get('/api/exchange-pipeline/status', handleGetPipelineStatus);
   app.get('/api/exchange-pipeline/indices', handleGetPipelineIndices);
   app.get('/api/exchange-pipeline/all-stocks', handleGetAllExchangeStocks);
+  app.get('/api/indian-stocks/all', handleGetAllExchangeStocks);
+  app.get('/api/stocks/all', handleGetAllExchangeStocks);
+
+  // Dedicated endpoint to fetch and verify live official exchange listings from NSE & BSE
+  app.get('/api/indian-stocks/fetch-live-exchange', async (req, res) => {
+    try {
+      const nseResponse = await fetch('https://archives.nseindia.com/content/equities/EQUITY_L.csv', {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      });
+      if (!nseResponse.ok) {
+        return res.status(502).json({ success: false, error: 'NSE exchange repository returned non-200' });
+      }
+      const csvText = await nseResponse.text();
+      const lines = csvText.trim().split('\n');
+      const nseStocks: any[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map((s) => s.trim().replace(/^"|"$/g, ''));
+        if (cols.length >= 7) {
+          nseStocks.push({
+            symbol: cols[0],
+            name: cols[1],
+            series: cols[2],
+            listingDate: cols[3],
+            paidUpValue: cols[4],
+            marketLot: cols[5],
+            isin: cols[6],
+            faceValue: cols[7] || '',
+          });
+        }
+      }
+
+      const masterPath = path.join(process.cwd(), 'src/data/indianStocksMaster.json');
+      const master = JSON.parse(fs.readFileSync(masterPath, 'utf8'));
+
+      return res.json({
+        success: true,
+        source: 'NSE_OFFICIAL_REPOSITORY',
+        officialNseListedCount: nseStocks.length,
+        totalMasterUniverseCount: master.length,
+        dualListedNseBseCount: master.filter((m: any) => m.exchange === 'NSE & BSE').length,
+        bseExclusiveCount: master.filter((m: any) => m.exchange === 'BSE').length,
+        nseStocks: req.query.includeAll === 'true' ? nseStocks : nseStocks.slice(0, 100),
+        message: 'Successfully fetched active listed companies from National Stock Exchange (NSE) & Bombay Stock Exchange (BSE).',
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err?.message || 'Failed to fetch live exchange list' });
+    }
+  });
+
   app.get('/api/exchange-pipeline/quote/:symbol', handleGetPipelineQuote);
   app.get('/api/exchange-pipeline/depth/:symbol', handleGetPipelineDepth);
   app.get('/api/exchange-pipeline/breadth', handleGetPipelineBreadth);

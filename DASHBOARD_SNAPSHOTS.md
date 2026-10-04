@@ -29,8 +29,8 @@ This document provides a comprehensive visual reference, component blueprint, an
 ```
 ╔════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 ║                                 FINAGENT WORKSTATION NAVIGATION BAR                                    ║
-║  [⚡ FINAGENT AI]   [Research] [All Stocks (2,570+)] [Sectors] [Watchlist] [Portfolio] [Paper Lab]   ║
-║  [🔎 Search Symbol, Company Name, or BSE Code...]        [● NSE/BSE: 09:15-15:30 IST] [₹10L Virtual]  ║
+║  [⚡ FINAGENT AI]   [Research Cockpit] [All Indian Stocks (2,570+)] [Sectors] [DAG] [Watchlist] [Port] ║
+║  [● NSE/BSE: 09:15-15:30 IST] [10-Agent Autonomous Swarm Active] [📸 Snapshots] [₹10L Virtual]         ║
 ╚════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 ```
 
@@ -43,8 +43,6 @@ This document provides a comprehensive visual reference, component blueprint, an
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ TICKER: RELIANCE  [NSE]  [POSITIVE RESEARCH SETUP]  [Sector Heatmap →]    │ LTP: ₹1,257.50 ▲ (+1.45%) │
 │ Reliance Industries Limited • Energy & Retail • MCap: ₹17.02 Lakh Cr      │ Bid: ₹1,257.45 | Ask: ... │
-├───────────────────────────────────────────────────────────────────────────┴───────────────────────────┤
-│ [Quick Switch: RELIANCE | TCS | HDFCBANK | INFY | TATAMOTORS | ICICIBANK | SBIN | MARUTI | BAJFINANCE]│
 ├──────────────────────────────────────┬────────────────────────────────────────────────────────────────┤
 │   INVESTMENT COMMITTEE SCORECARD     │            MULTI-AGENT EVALUATION MATRIX                       │
 │             ┌───────┐                │  Fundamentals      [████████████░░░] 80/100 (High)             │

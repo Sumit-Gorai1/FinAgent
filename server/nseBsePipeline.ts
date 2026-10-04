@@ -780,8 +780,12 @@ export const handleGetAllExchangeStocks = (req: Request, res: Response) => {
   const search = ((req.query.search as string) || '').toLowerCase().trim();
   const exchange = ((req.query.exchange as string) || 'ALL').toUpperCase();
   const sector = ((req.query.sector as string) || 'ALL');
+  const rawPageSize = req.query.pageSize as string;
+  const isFetchAll = rawPageSize === 'all' || rawPageSize === 'ALL' || req.query.all === 'true';
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
-  const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 40));
+  const pageSize = isFetchAll
+    ? 5000
+    : Math.min(5000, Math.max(1, parseInt(rawPageSize) || 40));
   const sortBy = (req.query.sortBy as string) || 'symbol';
   const sortOrder = (req.query.sortOrder as string) || 'asc';
 

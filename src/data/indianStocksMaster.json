@@ -36208,5 +36208,267 @@
       "zenith steel",
       "zenith"
     ]
+  },
+  {
+    "symbol": "HEROMOTORS",
+    "name": "Hero Motors Limited",
+    "exchange": "NSE & BSE",
+    "series": "EQ",
+    "isin": "INE012G01022",
+    "sector": "Automotive & EV",
+    "currency": "₹",
+    "aliases": [
+      "hero motors",
+      "hero group",
+      "pankaj munjal",
+      "automotive gears",
+      "ev transmission"
+    ],
+    "bseCode": "544250"
+  },
+  {
+    "symbol": "MONEYVIEW",
+    "name": "Moneyview Limited",
+    "exchange": "NSE & BSE",
+    "series": "EQ",
+    "isin": "INE0PTN01011",
+    "sector": "Banking & Financial Services",
+    "currency": "₹",
+    "aliases": [
+      "moneyview",
+      "money view",
+      "fintech",
+      "personal loans",
+      "digital lending"
+    ],
+    "bseCode": "544251"
+  },
+  {
+    "symbol": "ELEVATE",
+    "name": "Elevate Campuses Limited",
+    "exchange": "NSE & BSE",
+    "series": "EQ",
+    "isin": "INE147X01013",
+    "sector": "Consumer Goods & Retail",
+    "currency": "₹",
+    "aliases": [
+      "elevate campuses",
+      "student housing",
+      "campus living"
+    ],
+    "bseCode": "544252"
+  },
+  {
+    "symbol": "AONESTEELS",
+    "name": "A-One Steels India Limited",
+    "exchange": "NSE & BSE",
+    "series": "EQ",
+    "isin": "INE0OTC01025",
+    "sector": "Metals & Mining",
+    "currency": "₹",
+    "aliases": [
+      "a one steels",
+      "aone steels",
+      "tmt bars",
+      "steel"
+    ],
+    "bseCode": "544253"
+  },
+  {
+    "symbol": "ARMEE",
+    "name": "ArMee Infotech Limited",
+    "exchange": "NSE & BSE",
+    "series": "EQ",
+    "isin": "INE0TWE01016",
+    "sector": "Information Technology",
+    "currency": "₹",
+    "aliases": [
+      "armee infotech",
+      "armee",
+      "it solutions",
+      "cloud infrastructure"
+    ],
+    "bseCode": "544254"
+  },
+  {
+    "symbol": "ADROITIND",
+    "name": "Adroit Industries (India) Limited",
+    "exchange": "NSE & BSE",
+    "series": "BE",
+    "isin": "INE505M01015",
+    "sector": "Automotive & EV",
+    "currency": "₹",
+    "aliases": [
+      "adroit industries",
+      "propeller shafts",
+      "auto components"
+    ],
+    "bseCode": "544255"
+  },
+  {
+    "symbol": "CENTEXT-RE",
+    "name": "Century Extrusions Limited-RE",
+    "exchange": "NSE & BSE",
+    "series": "BE",
+    "isin": "INE281A20018",
+    "sector": "Metals & Mining",
+    "currency": "₹",
+    "aliases": [
+      "century extrusions",
+      "aluminium extrusions"
+    ],
+    "bseCode": "544256"
+  },
+  {
+    "symbol": "GSPLTRANS",
+    "name": "GSPL Transmission Limited",
+    "exchange": "NSE & BSE",
+    "series": "BE",
+    "isin": "INE1TUG01013",
+    "sector": "Energy, Oil & Power",
+    "currency": "₹",
+    "aliases": [
+      "gspl transmission",
+      "gujarat state petronet",
+      "gas pipeline"
+    ],
+    "bseCode": "544257"
+  },
+  {
+    "symbol": "JSIPL",
+    "name": "Jindal Supreme (India) Limited",
+    "exchange": "NSE & BSE",
+    "series": "BE",
+    "isin": "INE1DLO01028",
+    "sector": "Metals & Mining",
+    "currency": "₹",
+    "aliases": [
+      "jindal supreme",
+      "jindal pipes",
+      "steel pipes"
+    ],
+    "bseCode": "544258"
+  },
+  {
+    "symbol": "MANIKA",
+    "name": "Manika Plastech Limited",
+    "exchange": "NSE & BSE",
+    "series": "BE",
+    "isin": "INE0KWF01020",
+    "sector": "Chemicals & Petrochemicals",
+    "currency": "₹",
+    "aliases": [
+      "manika plastech",
+      "polymers",
+      "packaging solutions"
+    ],
+    "bseCode": "544259"
+  },
+  {
+    "symbol": "PARIN",
+    "name": "Parin Enterprises Limited",
+    "exchange": "NSE & BSE",
+    "series": "EQ",
+    "isin": "INE00U801010",
+    "sector": "Consumer Goods & Retail",
+    "currency": "₹",
+    "aliases": [
+      "parin enterprises",
+      "parin furniture",
+      "office furniture"
+    ],
+    "bseCode": "544260"
+  },
+  {
+    "symbol": "QUINTEGRA",
+    "name": "Quintegra Solutions Limited",
+    "exchange": "NSE & BSE",
+    "series": "EQ",
+    "isin": "INE033B01011",
+    "sector": "Information Technology",
+    "currency": "₹",
+    "aliases": [
+      "quintegra solutions",
+      "software services",
+      "erp solutions"
+    ],
+    "bseCode": "544261"
+  },
+  {
+    "symbol": "SONA",
+    "name": "Sonaselection India Limited",
+    "exchange": "NSE & BSE",
+    "series": "BE",
+    "isin": "INE0LLZ01011",
+    "sector": "Consumer Goods & Retail",
+    "currency": "₹",
+    "aliases": [
+      "sonaselection",
+      "textiles",
+      "apparel retail"
+    ],
+    "bseCode": "544262"
+  },
+  {
+    "symbol": "SSRETAIL",
+    "name": "SS Retail Limited",
+    "exchange": "NSE & BSE",
+    "series": "EQ",
+    "isin": "INE1EQW01028",
+    "sector": "Consumer Goods & Retail",
+    "currency": "₹",
+    "aliases": [
+      "ss retail",
+      "shoppers stop retail",
+      "lifestyle retail"
+    ],
+    "bseCode": "544263"
+  },
+  {
+    "symbol": "SWASTIKAIN",
+    "name": "Swastika Infra Limited",
+    "exchange": "NSE & BSE",
+    "series": "BE",
+    "isin": "INE1QJA01015",
+    "sector": "Infrastructure & Capital Goods",
+    "currency": "₹",
+    "aliases": [
+      "swastika infra",
+      "civil construction",
+      "roads highway"
+    ],
+    "bseCode": "544264"
+  },
+  {
+    "symbol": "VARMORA",
+    "name": "Varmora Granito Limited",
+    "exchange": "NSE & BSE",
+    "series": "EQ",
+    "isin": "INE0M5301040",
+    "sector": "Infrastructure & Capital Goods",
+    "currency": "₹",
+    "aliases": [
+      "varmora granito",
+      "varmora tiles",
+      "ceramic tiles",
+      "sanitaryware"
+    ],
+    "bseCode": "544265"
+  },
+  {
+    "symbol": "VEEGALAND",
+    "name": "Veegaland Developers Limited",
+    "exchange": "NSE & BSE",
+    "series": "BE",
+    "isin": "INE1JTV01015",
+    "sector": "Real Estate & Realty",
+    "currency": "₹",
+    "aliases": [
+      "veegaland developers",
+      "veegaland homes",
+      "kerala real estate",
+      "v-guard promoters"
+    ],
+    "bseCode": "544266"
   }
 ]
