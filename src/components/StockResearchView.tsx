@@ -128,7 +128,6 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
 
   const [simulatedTickPrice, setSimulatedTickPrice] = React.useState<number>(stock.price);
   const [timeframe, setTimeframe] = React.useState<'1D' | '1W' | '1M' | '1Y'>('1M');
-  const [chartEngine, setChartEngine] = React.useState<'tradingview' | 'area'>('tradingview');
   const [chartIndicators, setChartIndicators] = React.useState({
     showSMA20: true,
     showSMA50: true,

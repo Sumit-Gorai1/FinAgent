@@ -26,7 +26,7 @@ import {
 } from 'recharts';
 import { StockResearchData } from '../types';
 import { generateCandleChartData, CandleDataPoint } from '../utils/stockDataHelper';
-import { TradingViewChart } from './TradingViewChart';
+import { getTradingViewSymbol } from './TradingViewChart';
 
 interface FinancialChartProps {
   stock: StockResearchData;
@@ -37,7 +37,7 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
   stock,
   height = 440,
 }) => {
-  const [chartType, setChartType] = useState<'candlestick' | 'area' | 'tradingview'>('candlestick');
+  const [chartType, setChartType] = useState<'candlestick' | 'area'>('candlestick');
   const [timeframe, setTimeframe] = useState<'1D' | '1W' | '1M' | '3M' | '1Y'>('1M');
   
   // Technical Overlays & Oscillators State
@@ -149,9 +149,7 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
   // Chart Container Content
   const renderChartBody = () => (
     <div className="w-full flex-1 flex flex-col justify-between select-none">
-      {chartType === 'tradingview' ? (
-        <TradingViewChart symbol={stock.symbol} height={isFullscreen ? 650 : height} theme="dark" />
-      ) : chartType === 'candlestick' ? (
+      {chartType === 'candlestick' ? (
         /* ================= CANDLESTICK SVG SUITE ================= */
         <div className="w-full flex-1 flex flex-col justify-between">
           {/* Main Price Canvas */}
@@ -822,18 +820,16 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
                 Area
               </button>
 
-              <button
-                onClick={() => setChartType('tradingview')}
-                className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
-                  chartType === 'tradingview'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-                title="TradingView Studio Embed"
+              <a
+                href={`https://in.tradingview.com/chart/?symbol=${encodeURIComponent(getTradingViewSymbol(stock.symbol))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 text-cyan-400 hover:text-white bg-slate-900/80 hover:bg-cyan-950 border border-slate-700/80 hover:border-cyan-500/60 transition-all font-mono"
+                title={`Open ${stock.symbol} live chart in TradingView Studio (new tab)`}
               >
-                <ExternalLink className="w-3.5 h-3.5" />
-                TV Studio
-              </button>
+                <span>TradingView</span>
+                <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+              </a>
             </div>
 
             {/* Timeframe Selector */}
@@ -865,9 +861,8 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
         </div>
 
         {/* Indicators Toolbar (Toggles for SMA, EMA, Bollinger Bands, S/R, Volume, RSI) */}
-        {chartType !== 'tradingview' && (
-          <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-xl bg-slate-950/70 border border-slate-800 text-xs font-mono">
-            <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-xl bg-slate-950/70 border border-slate-800 text-xs font-mono">
+          <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] text-slate-400 flex items-center gap-1 font-sans">
                 <Sliders className="w-3.5 h-3.5 text-cyan-400" />
                 Overlays:
@@ -964,7 +959,6 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
               </button>
             </div>
           </div>
-        )}
 
         {/* Primary Chart Area */}
         <div style={{ height: `${height}px` }} className="w-full relative">
