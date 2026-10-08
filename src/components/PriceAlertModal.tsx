@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { PriceAlert, StockResearchData } from '../types';
 import { playAlertChime } from '../utils/soundAlert';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 interface PriceAlertModalProps {
   stock: StockResearchData;
@@ -520,6 +521,15 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({
             </div>
           </div>
         )}
+
+        {/* Educational-Use Disclaimer */}
+        <div className="pt-2">
+          <EducationalDisclaimer
+            variant="compact"
+            actionContext="BUY_SELL_HOLD"
+            customText="Educational-Use Disclaimer: Custom price threshold alerts, target levels, and simulation ticks are hypothetical user-configured triggers for simulated observation only. Not financial advice."
+          />
+        </div>
       </div>
     </div>
   );

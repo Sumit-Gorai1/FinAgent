@@ -14,6 +14,7 @@ import {
   playActiveSound,
   portfolioHeartbeatService,
 } from '../utils/heartbeatAudio';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 interface PortfolioHeartbeatMonitorProps {
   holdings: PortfolioHolding[];
@@ -896,6 +897,13 @@ export const PortfolioHeartbeatMonitor: React.FC<PortfolioHeartbeatMonitorProps>
           <span>{holdings.length} Positions</span>
         </div>
       </div>
+
+      {/* Educational Use Disclaimer */}
+      <EducationalDisclaimer
+        variant="footer"
+        actionContext="BUY_SELL_HOLD"
+        className="mt-2"
+      />
     </div>
   );
 };

@@ -12,6 +12,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { PortfolioHolding } from '../types';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 export type PositionActionType = 'BUY' | 'TRIM' | 'EDIT';
 
@@ -410,6 +411,12 @@ export const PositionActionModal: React.FC<PositionActionModalProps> = ({
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          <EducationalDisclaimer
+            variant="footer"
+            actionContext="BUY_SELL_HOLD"
+            className="pt-2 border-t border-slate-800"
+          />
         </form>
       </div>
     </div>

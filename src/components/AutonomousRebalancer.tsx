@@ -18,6 +18,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { PortfolioHolding, TargetAllocationModelType, RebalancePlan, RebalanceRecommendation } from '../types';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 interface AutonomousRebalancerProps {
   holdings: PortfolioHolding[];
@@ -482,6 +483,15 @@ export const AutonomousRebalancer: React.FC<AutonomousRebalancerProps> = ({
         </div>
       )}
 
+      {/* Educational Use Disclaimer for Rebalance Recommendations */}
+      {plan && (
+        <EducationalDisclaimer
+          variant="banner"
+          actionContext="REBALANCE"
+          className="my-1"
+        />
+      )}
+
       {/* Main Table: Holdings vs Targets & Order Recommendations */}
       {plan && (
         <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
@@ -667,6 +677,8 @@ export const AutonomousRebalancer: React.FC<AutonomousRebalancerProps> = ({
               </tbody>
             </table>
           </div>
+
+          <EducationalDisclaimer variant="footer" actionContext="REBALANCE" />
         </div>
       )}
     </div>

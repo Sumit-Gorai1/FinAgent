@@ -55,6 +55,7 @@ import { DynamicValuationModel } from './DynamicValuationModel';
 import { TradingViewChart } from './TradingViewChart';
 import { FinancialChart } from './FinancialChart';
 import { SectorHeatmap } from './SectorHeatmap';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 import { ErrorBoundary } from './ErrorBoundary';
 import { playAlertChime } from '../utils/soundAlert';
 import { searchStockCatalog, resolveStockQuery, getMatchSegments } from '../utils/stockSearchResolver';
@@ -197,83 +198,64 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
     });
   }, [timeframe, stock.priceHistory, stock.price, stock.open, stock.volume, stock.fiftyTwoWeekLow, stock.fiftyTwoWeekHigh, stock.avgVolume]);
 
-  // Live News Intelligence — Current Fresh Market News Only (strictly within today / past 24 hours)
+  // Live News Intelligence — Priority: Recent 2–4 Hours, Fallback: Past 24 Hours
   const [liveNews, setLiveNews] = React.useState<any[]>([]);
+  const [all24hNews, setAll24hNews] = React.useState<any[]>([]);
+  const [newsHorizon, setNewsHorizon] = React.useState<'AUTO' | '2-4H' | '24H'>('AUTO');
+  const [activeHorizonLabel, setActiveHorizonLabel] = React.useState<string>('Recent 2–4 Hours');
+  const [isFallbackTo24h, setIsFallbackTo24h] = React.useState<boolean>(false);
+  const [recentCount, setRecentCount] = React.useState<number>(0);
+  const [total24hCount, setTotal24hCount] = React.useState<number>(0);
   const [isFetchingNews, setIsFetchingNews] = React.useState<boolean>(false);
   const [newsFetchedTime, setNewsFetchedTime] = React.useState<string>('Live Wire');
 
-  const fetchStockNews = React.useCallback(async (sym: string, name?: string) => {
+  const fetchStockNews = React.useCallback(async (sym: string, name?: string, horizon: 'AUTO' | '2-4H' | '24H' = 'AUTO') => {
     setIsFetchingNews(true);
     try {
-      const res = await fetch(`/api/live-market/news/${encodeURIComponent(sym)}?name=${encodeURIComponent(name || '')}`);
+      const horizonParam = horizon === '2-4H' ? '2-4h' : horizon === '24H' ? '24h' : 'auto';
+      const res = await fetch(`/api/live-market/news/${encodeURIComponent(sym)}?name=${encodeURIComponent(name || '')}&horizon=${horizonParam}`);
       if (res.ok) {
         const payload = await res.json();
         if (payload && Array.isArray(payload.articles)) {
-          const now = Date.now();
-          // Strictly fresh news filter: Exclude 1-day news, yesterday news, or stale updates (< 24h strictly)
-          const strictlyFresh = payload.articles.filter((a: any) => {
-            const d = (a.date || '').toLowerCase();
-            const title = (a.title || '').toLowerCase();
-            if (
-              d.includes('day') ||
-              d.includes('yesterday') ||
-              d.includes('week') ||
-              d.includes('month') ||
-              title.includes('yesterday') ||
-              title.includes('1 day ago') ||
-              title.includes('days ago')
-            ) {
-              return false;
-            }
-            if (a.timestamp && (now - a.timestamp) >= 24 * 60 * 60 * 1000) {
-              return false;
-            }
-            return true;
-          });
-          setLiveNews(strictlyFresh);
+          setLiveNews(payload.articles);
+          setAll24hNews(payload.all24hArticles || payload.articles);
+          setActiveHorizonLabel(payload.horizonLabel || (payload.activeHorizon === '2-4h' ? 'Recent 2–4 Hours' : 'Past 24 Hours'));
+          setIsFallbackTo24h(Boolean(payload.fallbackUsed));
+          setRecentCount(payload.recent2to4hCount || 0);
+          setTotal24hCount(payload.total24hCount || payload.articles.length);
           setNewsFetchedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         }
       }
-    } catch (err) {
-      console.warn('Failed to fetch fresh market news:', err);
+    } catch {
+      // Quietly handle network glitch
     } finally {
       setIsFetchingNews(false);
     }
   }, []);
 
   React.useEffect(() => {
-    // Fresh news updates only: clear previous stock news and fetch fresh articles directly
+    // Clear and fetch on stock change
     setLiveNews([]);
-    fetchStockNews(stock.symbol, stock.name);
-  }, [stock.symbol, stock.name, fetchStockNews]);
+    fetchStockNews(stock.symbol, stock.name, newsHorizon);
+  }, [stock.symbol, stock.name, newsHorizon, fetchStockNews]);
 
   const [newsFilter, setNewsFilter] = React.useState<'ALL' | 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL'>('ALL');
 
   const filteredNews = React.useMemo(() => {
-    const now = Date.now();
-    // Strictly fresh current news only (< 24h, no 1-day old news)
-    const freshOnly = liveNews.filter((n) => {
-      const d = (n.date || '').toLowerCase();
-      const title = (n.title || '').toLowerCase();
-      if (
-        d.includes('day') ||
-        d.includes('yesterday') ||
-        d.includes('week') ||
-        d.includes('month') ||
-        title.includes('yesterday') ||
-        title.includes('1 day ago') ||
-        title.includes('days ago')
-      ) {
-        return false;
-      }
-      if (n.timestamp && (now - n.timestamp) >= 24 * 60 * 60 * 1000) {
-        return false;
-      }
-      return true;
-    });
-    if (newsFilter === 'ALL') return freshOnly;
-    return freshOnly.filter((n) => n.sentiment === newsFilter);
-  }, [liveNews, newsFilter]);
+    // Decide which articles list to filter:
+    let baseList = liveNews;
+    if (newsHorizon === '2-4H') {
+      const now = Date.now();
+      baseList = (all24hNews.length > 0 ? all24hNews : liveNews).filter(
+        (a) => (now - (a.timestamp || 0)) <= 4 * 60 * 60 * 1000
+      );
+    } else if (newsHorizon === '24H') {
+      baseList = all24hNews.length > 0 ? all24hNews : liveNews;
+    }
+
+    if (newsFilter === 'ALL') return baseList;
+    return baseList.filter((n) => n.sentiment === newsFilter);
+  }, [liveNews, all24hNews, newsHorizon, newsFilter]);
 
   const scoreColor =
     stock.committee.overallScore >= 75
@@ -565,6 +547,13 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Educational Use Disclaimer for Committee Consensus & Ratings */}
+      <EducationalDisclaimer
+        variant="compact"
+        actionContext="BUY_SELL_HOLD"
+        className="my-1 shadow-sm"
+      />
 
       {/* Navigation Sub-Tabs */}
       <div className="border-b border-slate-800 overflow-x-auto scrollbar-none flex items-center gap-2 text-xs font-semibold">
@@ -860,25 +849,25 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
               </div>
             </div>
 
-            {/* TradingView Advanced Technicals Chart Embed */}
+            {/* TradingView Advanced Technicals Clickable Option */}
             <div className="pt-4 border-t border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <BarChart2 className="w-4 h-4 text-purple-400" />
+                  <BarChart2 className="w-4 h-4 text-cyan-400" />
                   <h4 className="text-sm font-bold text-white font-mono">
-                    TradingView Interactive Technical Chart ({stock.symbol})
+                    TradingView Interactive Technical Workspace ({stock.symbol})
                   </h4>
                 </div>
-                <span className="text-[11px] font-mono text-purple-300 bg-purple-950/60 px-2.5 py-0.5 rounded border border-purple-800/60">
-                  Full Technical Workspace
+                <span className="text-[11px] font-mono text-cyan-300 bg-cyan-950/60 px-2.5 py-0.5 rounded border border-cyan-800/60">
+                  Clickable Option Only
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-mono">
-                Explore real-time candlestick intervals, Fibonacci retracements, multi-indicator overlays, and cross-hair measurement tools directly on {stock.symbol}.
+                Launch interactive candlestick intervals, Fibonacci retracements, multi-indicator overlays, and cross-hair measurement tools directly on {stock.symbol}.
               </p>
               <div className="w-full">
-                <ErrorBoundary fallbackTitle="TradingView Technical Chart">
-                  <TradingViewChart symbol={stock.symbol} height={460} theme="dark" />
+                <ErrorBoundary fallbackTitle="TradingView Technical Workspace">
+                  <TradingViewChart symbol={stock.symbol} />
                 </ErrorBoundary>
               </div>
             </div>
@@ -1004,13 +993,20 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
                     <Newspaper className="w-4 h-4 text-cyan-400" />
                     Agent 5 — Current Market News Wire
                   </h3>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-800 inline-flex items-center gap-1">
-                    <Zap className="w-3 h-3 text-cyan-400" />
-                    Fresh Market News (Live / Today)
-                  </span>
+                  {isFallbackTo24h ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-950/80 text-amber-300 border border-amber-800/80 inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-amber-400" />
+                      No 2–4h News Found • Expanded to Past 24 Hours
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 inline-flex items-center gap-1">
+                      <Zap className="w-3 h-3 text-emerald-400" />
+                      Recent 2–4 Hours Priority Active
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-slate-400 mt-1">
-                  Continuously queries accredited financial media (Economic Times, LiveMint, Reuters, CNBC-TV18, Business Standard) for verified, real-time current market catalysts for {stock.symbol}. Stale 1-day+ articles are automatically excluded.
+                  Prioritizes fresh market catalysts published within the past 2–4 hours; if none are available, automatically expands to accredited market updates from the past 24 hours.
                 </p>
               </div>
 
@@ -1022,48 +1018,69 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
                 </div>
 
                 <button
-                  onClick={() => fetchStockNews(stock.symbol, stock.name)}
+                  onClick={() => fetchStockNews(stock.symbol, stock.name, newsHorizon)}
                   disabled={isFetchingNews}
                   className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-md active:scale-95"
                   title="Fetch fresh market news from live RSS feeds"
                 >
                   <RotateCw className={`w-3.5 h-3.5 ${isFetchingNews ? 'animate-spin' : ''}`} />
-                  {isFetchingNews ? 'Fetching Fresh News...' : 'Fetch Fresh News'}
+                  {isFetchingNews ? 'Fetching News...' : 'Fetch Fresh News'}
                 </button>
               </div>
             </div>
 
-            {/* Sub-header: Filters & Counter */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+            {/* Sub-header: Horizon Selector & Sentiment Filters */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-1">
+              {/* Horizon Mode Toggle (2-4h Priority vs 24h) */}
+              <div className="flex items-center gap-1.5 text-xs font-mono">
+                <span className="text-slate-500 text-[11px] mr-1 hidden sm:inline">Horizon:</span>
+                {[
+                  { id: 'AUTO' as const, label: 'Auto (2–4h, else 24h)' },
+                  { id: '2-4H' as const, label: `Recent 2–4h (${recentCount})` },
+                  { id: '24H' as const, label: `Past 24h (${total24hCount})` },
+                ].map((hz) => (
+                  <button
+                    key={hz.id}
+                    onClick={() => {
+                      setNewsHorizon(hz.id);
+                      fetchStockNews(stock.symbol, stock.name, hz.id);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg transition-all text-[11px] font-semibold ${
+                      newsHorizon === hz.id
+                        ? 'bg-cyan-950 text-cyan-300 border border-cyan-700/80 shadow-sm'
+                        : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    {hz.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sentiment Filter */}
               <div className="flex items-center gap-1.5 text-xs font-mono">
                 <span className="text-slate-500 text-[11px] mr-1 hidden sm:inline">Filter:</span>
                 {(['ALL', 'POSITIVE', 'NEGATIVE', 'NEUTRAL'] as const).map((fil) => {
                   const count =
                     fil === 'ALL'
-                      ? liveNews.length
-                      : liveNews.filter((n) => n.sentiment === fil).length;
+                      ? filteredNews.length
+                      : filteredNews.filter((n) => n.sentiment === fil).length;
                   return (
                     <button
                       key={fil}
                       onClick={() => setNewsFilter(fil)}
-                      className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+                      className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 text-[11px] ${
                         newsFilter === fil
                           ? 'bg-cyan-600 text-white font-bold shadow-sm'
                           : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
                       }`}
                     >
-                      <span>{fil === 'ALL' ? 'Fresh Releases' : fil}</span>
+                      <span>{fil === 'ALL' ? 'All' : fil}</span>
                       <span className={`px-1.5 py-0.2 rounded text-[10px] ${newsFilter === fil ? 'bg-cyan-800/80 text-white' : 'bg-slate-800 text-slate-400'}`}>
                         {isFetchingNews ? '...' : count}
                       </span>
                     </button>
                   );
                 })}
-              </div>
-
-              <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Strict Fresh News Horizon (Today / &lt; 24h • 1-Day News Filtered Out)</span>
               </div>
             </div>
 
@@ -1075,73 +1092,86 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
                     <RotateCw className="w-6 h-6 text-cyan-400 animate-spin" />
                   </div>
                   <p className="text-sm text-slate-200 font-mono font-bold">
-                    Fetching current fresh market news for {stock.symbol} ({stock.name})...
+                    Fetching market news for {stock.symbol} ({stock.name})...
                   </p>
                   <p className="text-xs text-slate-400 max-w-md mx-auto">
-                    Connecting to live financial RSS wires and filtering strictly for releases published within today / past 24 hours (1-day news removed).
+                    Prioritizing fresh releases within the past 2–4 hours with automatic fallback to past 24 hours.
                   </p>
                 </div>
               ) : filteredNews.length === 0 ? (
                 <div className="p-8 rounded-xl bg-slate-950/60 border border-slate-800/80 text-center space-y-2">
                   <p className="text-sm text-slate-300 font-mono">
-                    No fresh news updates found in the past 24 hours matching "{newsFilter}". (1-day and older news filtered out).
+                    No news updates found matching "{newsFilter}" in {newsHorizon === '2-4H' ? 'recent 2–4 hours' : 'past 24 hours'}.
                   </p>
                   <p className="text-xs text-slate-500">
-                    Click "Fetch Fresh News" above to re-query live financial feeds for {stock.symbol}.
+                    Switch horizon above to "Past 24h" or click "Fetch Fresh News" to query live feeds.
                   </p>
                 </div>
               ) : (
-                filteredNews.map((art) => (
-                  <div
-                    key={art.id}
-                    className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition-all space-y-2.5 group"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
-                            art.sentiment === 'POSITIVE'
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                              : art.sentiment === 'NEGATIVE'
-                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                              : 'bg-slate-800 text-slate-300 border border-slate-700'
-                          }`}
-                        >
-                          {art.sentiment}
-                        </span>
-                        <span className="text-xs font-semibold text-cyan-400 font-mono">[{art.event}]</span>
+                filteredNews.map((art) => {
+                  const isWithin4h = art.timestamp ? (Date.now() - art.timestamp) <= 4 * 60 * 60 * 1000 : true;
+                  return (
+                    <div
+                      key={art.id}
+                      className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition-all space-y-2.5 group"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                              art.sentiment === 'POSITIVE'
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                : art.sentiment === 'NEGATIVE'
+                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                                : 'bg-slate-800 text-slate-300 border border-slate-700'
+                            }`}
+                          >
+                            {art.sentiment}
+                          </span>
+                          <span className="text-xs font-semibold text-cyan-400 font-mono">[{art.event}]</span>
+                          {isWithin4h ? (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 inline-flex items-center gap-1">
+                              <Zap className="w-2.5 h-2.5 text-emerald-400" />
+                              2–4h Fresh
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium bg-slate-900 text-slate-400 border border-slate-800 inline-flex items-center gap-1">
+                              <Clock className="w-2.5 h-2.5 text-slate-400" />
+                              Past 24h
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-3 text-xs text-slate-400 font-mono">
+                          <span className="text-slate-300">
+                            Source: <strong className="text-white">{art.source}</strong>
+                          </span>
+                          <span>•</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60 text-cyan-300 text-[11px] font-bold">
+                            <Clock className="w-3 h-3 text-cyan-400" />
+                            {art.date}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-3 text-xs text-slate-400 font-mono">
-                        <span className="text-slate-300">
-                          Source: <strong className="text-white">{art.source}</strong>
-                        </span>
-                        <span>•</span>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60 text-cyan-300 text-[11px] font-bold">
-                          <Clock className="w-3 h-3 text-cyan-400" />
-                          {art.date}
-                        </span>
+                      <div>
+                        {art.url ? (
+                          <a
+                            href={art.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-semibold text-white leading-snug hover:text-cyan-300 transition-colors inline-flex items-center gap-1.5"
+                            title="Open original news article in new tab"
+                          >
+                            <span>{art.title}</span>
+                            <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 shrink-0 text-cyan-400" />
+                          </a>
+                        ) : (
+                          <h4 className="text-sm font-semibold text-white leading-snug hover:text-cyan-300 transition-colors">
+                            {art.title}
+                          </h4>
+                        )}
                       </div>
-                    </div>
-
-                    <div>
-                      {art.url ? (
-                        <a
-                          href={art.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm font-semibold text-white leading-snug hover:text-cyan-300 transition-colors inline-flex items-center gap-1.5"
-                          title="Open original news article in new tab"
-                        >
-                          <span>{art.title}</span>
-                          <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 shrink-0 text-cyan-400" />
-                        </a>
-                      ) : (
-                        <h4 className="text-sm font-semibold text-white leading-snug hover:text-cyan-300 transition-colors">
-                          {art.title}
-                        </h4>
-                      )}
-                    </div>
 
                     <p className="text-xs text-slate-400 leading-relaxed">{art.summary}</p>
 
@@ -1161,8 +1191,9 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
                       </div>
                     </div>
                   </div>
-                ))
-              )}
+                );
+              })
+            )}
             </div>
           </div>
         </div>
@@ -1401,6 +1432,13 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Educational Disclaimer on Bull vs Bear Arguments */}
+            <EducationalDisclaimer
+              variant="compact"
+              actionContext="BUY_SELL_HOLD"
+              customText="Educational-Use Disclaimer: Adversarial Bull and Bear arguments and valuation targets are generated for academic hypothesis testing and simulation only. They do not constitute financial advice or investment recommendations."
+            />
           </div>
         </div>
       )}

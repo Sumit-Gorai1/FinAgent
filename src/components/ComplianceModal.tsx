@@ -58,6 +58,15 @@ export const ComplianceModal: React.FC<ComplianceModalProps> = ({ onClose }) => 
               The paper trading module operates entirely with simulated virtual currency. No real capital is ever deployed, transferred, or committed through this simulation.
             </p>
           </div>
+
+          <div className="space-y-2 p-3 rounded-xl bg-amber-950/20 border border-amber-800/40">
+            <h4 className="text-amber-300 font-bold font-mono flex items-center gap-1.5">
+              <span>4. Educational-Use Disclaimer on Buy / Sell / Hold Outputs:</span>
+            </h4>
+            <p className="text-amber-200/90 text-[11px]">
+              Any tool, indicator, committee consensus score, rebalancing plan, or arbitrage detector within FINAGENT that outputs <strong>Buy</strong>, <strong>Sell</strong>, <strong>Hold</strong>, <strong>Accumulate</strong>, or <strong>Trim</strong> carries a mandatory Educational-Use Disclaimer. These outputs represent hypothetical algorithmic simulations and academic financial modeling only. They do not constitute personalized financial advisory services, execution instructions, or SEBI-registered stock recommendations.
+            </p>
+          </div>
         </div>
 
         <div className="pt-2 flex justify-end">

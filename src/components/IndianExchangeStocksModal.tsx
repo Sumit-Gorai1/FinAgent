@@ -22,6 +22,7 @@ import {
   StockSearchItem,
   filterIndianStocks,
 } from '../utils/stockSearchResolver';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 interface IndianExchangeStocksModalProps {
   isOpen: boolean;
@@ -684,6 +685,14 @@ export const IndianExchangeStocksModal: React.FC<IndianExchangeStocksModalProps>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
+        </div>
+
+        {/* Educational Use Disclaimer */}
+        <div className="p-3 border-t border-slate-800 bg-slate-950/60 rounded-b-2xl">
+          <EducationalDisclaimer
+            variant="footer"
+            actionContext="BUY_SELL_HOLD"
+          />
         </div>
       </div>
     </div>

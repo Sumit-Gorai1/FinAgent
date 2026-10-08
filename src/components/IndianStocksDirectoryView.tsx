@@ -23,6 +23,7 @@ import {
   StockSearchItem,
   filterIndianStocks,
 } from '../utils/stockSearchResolver';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 interface IndianStocksDirectoryViewProps {
   onSelectStock: (symbol: string) => void;
@@ -684,6 +685,13 @@ export const IndianStocksDirectoryView: React.FC<IndianStocksDirectoryViewProps>
           </button>
         </div>
       </div>
+
+      {/* Educational Use Disclaimer */}
+      <EducationalDisclaimer
+        variant="footer"
+        actionContext="BUY_SELL_HOLD"
+        className="mt-3"
+      />
     </div>
   );
 };

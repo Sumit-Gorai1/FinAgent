@@ -27,6 +27,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { PaperOrder, StockResearchData, PortfolioHolding } from '../types';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 interface PaperTradingLabProps {
   currentStock: StockResearchData;
@@ -396,6 +397,12 @@ export const PaperTradingLab: React.FC<PaperTradingLabProps> = ({
               </span>
               <span className="text-[10px] font-mono text-cyan-400">SIMULATED BROKER GATEWAY</span>
             </div>
+
+            <EducationalDisclaimer
+              variant="compact"
+              actionContext="BUY_SELL_HOLD"
+              customText="Virtual simulated broker gateway. Buy and Sell orders are strictly for educational and backtesting demonstration without actual exchange execution."
+            />
 
             <form onSubmit={handleOrderSubmit} className="space-y-4 text-xs font-mono">
               {/* Buy / Sell selector */}
@@ -863,6 +870,12 @@ export const PaperTradingLab: React.FC<PaperTradingLabProps> = ({
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
+
+                <EducationalDisclaimer
+                  variant="footer"
+                  actionContext="BUY_SELL_HOLD"
+                  customText="Educational-Use Disclaimer: Multi-year strategy backtests, simulated alpha, and Sharpe ratios are hypothetical mathematical calculations for educational analysis. Past simulated performance does not guarantee future results."
+                />
               </div>
             )}
           </div>

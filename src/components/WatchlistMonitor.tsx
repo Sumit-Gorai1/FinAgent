@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { StockResearchData, WatchlistItem, TriggerEvent } from '../types';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 interface WatchlistMonitorProps {
   watchlist: WatchlistItem[];
@@ -256,6 +257,13 @@ export const WatchlistMonitor: React.FC<WatchlistMonitorProps> = ({
                 </tbody>
               </table>
             </div>
+
+            {/* Educational Use Disclaimer */}
+            <EducationalDisclaimer
+              variant="footer"
+              actionContext="BUY_SELL_HOLD"
+              className="mt-3"
+            />
           </div>
 
           {/* Trigger Simulator Card */}

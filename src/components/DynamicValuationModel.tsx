@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { StockResearchData } from '../types';
 import { calculateStockIntrinsicValue, getValuationBadgeConfig } from '../utils/stockValuationHelper';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 interface DynamicValuationModelProps {
   stock: StockResearchData;
@@ -609,6 +610,13 @@ export const DynamicValuationModel: React.FC<DynamicValuationModelProps> = ({ st
           </table>
         </div>
       </div>
+
+      {/* Educational Use Disclaimer */}
+      <EducationalDisclaimer
+        variant="compact"
+        actionContext="BUY_SELL_HOLD"
+        customText="Educational-Use Disclaimer: Institutional DCF, Benjamin Graham, Peter Lynch, and Relative Multiples valuation models produce mathematical approximations based on user inputs and assumptions. Undervalued/Overvalued metrics are for educational modeling only and do not constitute financial advice."
+      />
     </div>
   );
 };

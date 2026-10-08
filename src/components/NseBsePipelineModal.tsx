@@ -26,6 +26,7 @@ import {
   PipelineMarketDepth,
 } from '../types';
 import { getIndianMarketStatus } from '../utils/marketHoursHelper';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 interface NseBsePipelineModalProps {
   isOpen: boolean;
@@ -451,6 +452,13 @@ export const NseBsePipelineModal: React.FC<NseBsePipelineModalProps> = ({
                         </div>
                       </div>
                     </div>
+
+                    {/* Educational Use Disclaimer for Arbitrage Execution */}
+                    <EducationalDisclaimer
+                      variant="compact"
+                      actionContext="ARBITRAGE"
+                      className="mt-3"
+                    />
                   </div>
 
                   {/* Dual Comparison Grid */}

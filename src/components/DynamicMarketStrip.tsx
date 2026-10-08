@@ -73,7 +73,7 @@ export const DynamicMarketStrip: React.FC<DynamicMarketStripProps> = ({
   const isPositive = currentStock ? currentStock.change >= 0 : true;
 
   return (
-    <div className="bg-slate-900/95 border-y border-slate-800 backdrop-blur px-3 sm:px-4 py-2 sm:py-2.5 w-full overflow-hidden">
+    <div className="bg-slate-900/75 border-y border-slate-800/80 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 w-full overflow-hidden shadow-lg">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 w-full">
         {/* Left: Feed Engine Controls & Active Instrument Telemetry */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">

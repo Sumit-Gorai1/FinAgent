@@ -191,7 +191,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <header className="border-b border-slate-800 bg-slate-950/95 backdrop-blur sticky top-0 z-40">
+    <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 shadow-lg">
       {/* Ticker tape bar */}
       <div className="border-b border-slate-800/80 bg-slate-900/60 text-xs py-1.5 px-4 overflow-x-auto whitespace-nowrap scrollbar-none flex items-center gap-6 justify-between">
         <div className="flex items-center gap-5 text-slate-400 font-mono text-[11px]">

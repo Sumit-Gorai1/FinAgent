@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Activity, TrendingUp, TrendingDown, Clock, ShieldCheck } from 'lucide-react';
 import { isOrderDepthActiveForStock } from '../utils/marketHoursHelper';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 interface OrderLevel {
   price: number;
@@ -236,6 +237,13 @@ export const DynamicOrderDepth: React.FC<DynamicOrderDepthProps> = ({
           )}
         </div>
       </div>
+
+      {/* Educational Use Disclaimer */}
+      <EducationalDisclaimer
+        variant="footer"
+        actionContext="BUY_SELL_HOLD"
+        className="mt-1"
+      />
     </div>
   );
 };

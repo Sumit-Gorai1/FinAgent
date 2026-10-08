@@ -19,6 +19,7 @@ import { IndianExchangeStocksModal } from './components/IndianExchangeStocksModa
 import { IndianStocksDirectoryView } from './components/IndianStocksDirectoryView';
 import { SectorHeatmap } from './components/SectorHeatmap';
 import { DashboardSnapshotsModal } from './components/DashboardSnapshotsModal';
+import { DynamicBackgroundVideo } from './components/DynamicBackgroundVideo';
 import { playAlertChime } from './utils/soundAlert';
 
 export default function App() {
@@ -70,11 +71,41 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    setCurrentUser(null);
     try {
+      const token = localStorage.getItem('finagent_auth_token');
       localStorage.removeItem('finagent_user');
+      localStorage.removeItem('finagent_auth_token');
+      if (token) {
+        fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {});
+      }
     } catch {}
+    setCurrentUser(null);
   };
+
+  // Sync and validate authentication session on mount
+  React.useEffect(() => {
+    try {
+      const token = localStorage.getItem('finagent_auth_token');
+      const savedUserStr = localStorage.getItem('finagent_user');
+      const savedUser = savedUserStr ? JSON.parse(savedUserStr) : null;
+      if (token) {
+        fetch(`/api/auth/me?email=${encodeURIComponent(savedUser?.email || '')}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.authenticated && data.user) {
+              setCurrentUser(data.user);
+              localStorage.setItem('finagent_user', JSON.stringify(data.user));
+            }
+          })
+          .catch(() => {});
+      }
+    } catch {}
+  }, []);
 
   const [paperOrders, setPaperOrders] = React.useState<PaperOrder[]>([
     {
@@ -1097,7 +1128,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200 w-full max-w-[100vw] overflow-x-hidden">
+    <div className="min-h-screen bg-slate-950/40 text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200 w-full max-w-[100vw] overflow-x-hidden relative">
+      {/* Dark Cosmos & Starfield Background Motion Design */}
+      <DynamicBackgroundVideo initialOpacity={0.78} />
+
       {/* Persistent Navigation Header */}
       <Header
         activeView={activeView}

@@ -17,6 +17,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { StockResearchData, AssistantMessage, PriceAlert } from '../types';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 interface AIResearchAssistantProps {
   stock: StockResearchData;
@@ -324,6 +325,11 @@ You can set custom price threshold alerts using the **Set Alert** button to get 
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Educational Use Disclaimer */}
+      <div className="px-3 pb-1">
+        <EducationalDisclaimer variant="footer" actionContext="AI_SIGNAL" />
       </div>
 
       {/* Input Form */}

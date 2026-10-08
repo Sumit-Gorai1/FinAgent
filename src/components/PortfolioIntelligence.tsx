@@ -53,6 +53,7 @@ import {
   exportPortfolioPDF,
   exportPortfolioExcel,
 } from '../utils/portfolioExport';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 interface PortfolioIntelligenceProps {
   holdings: PortfolioHolding[];
@@ -956,6 +957,12 @@ export const PortfolioIntelligence: React.FC<PortfolioIntelligenceProps> = ({
                     </tbody>
                   </table>
                 </div>
+
+                <EducationalDisclaimer
+                  variant="footer"
+                  actionContext="BUY_SELL_HOLD"
+                  className="mt-3 pt-2"
+                />
               </div>
             </div>
 

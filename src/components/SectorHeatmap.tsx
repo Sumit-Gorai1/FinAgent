@@ -20,6 +20,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { StockResearchData } from '../types';
+import { EducationalDisclaimer } from './EducationalDisclaimer';
 
 export interface SectorHeatmapProps {
   stocks: Record<string, StockResearchData>;
@@ -1022,6 +1023,13 @@ export const SectorHeatmap: React.FC<SectorHeatmapProps> = ({
           </div>
         </div>
       )}
+
+      {/* Educational Use Disclaimer */}
+      <EducationalDisclaimer
+        variant="footer"
+        actionContext="BUY_SELL_HOLD"
+        className="mt-3"
+      />
 
       {/* Floating Hover Card Detail on Desktop */}
       {hoveredStock && (

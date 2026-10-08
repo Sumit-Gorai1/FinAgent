@@ -560,11 +560,11 @@ export function exportPortfolioPDF(
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(7);
+    doc.setFontSize(6);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184);
     doc.text(
-      'FINAGENT Autonomous Quantitative Research & Multi-Agent Rebalancer • For institutional analytical decision-support only. Not financial advice.',
+      'EDUCATIONAL-USE DISCLAIMER: Any Buy, Sell, Hold, Accumulate, or Trim signals and rebalancing directives in this document are strictly for educational and analytical modeling. FINAGENT is not a SEBI-registered advisor and does not provide investment advice.',
       28,
       pageHeight - 14
     );
@@ -891,7 +891,11 @@ export function exportPortfolioExcel(
     ];
   });
 
-  const ws5 = XLSX.utils.aoa_to_sheet([...rebalanceHeader, ...rebalanceRows]);
+  const disclaimerRow = [
+    ['EDUCATIONAL-USE DISCLAIMER: All Buy, Sell, Hold, Accumulate, or Trim directives and rebalancing calculations in this sheet are generated exclusively for educational and analytical modeling. Not investment advice.'],
+    [],
+  ];
+  const ws5 = XLSX.utils.aoa_to_sheet([...disclaimerRow, ...rebalanceHeader, ...rebalanceRows]);
   ws5['!cols'] = [
     { wch: 14 },
     { wch: 30 },
@@ -920,6 +924,7 @@ export function exportPortfolioCSV(
   const totalNetWorth = metrics.totalValue + cashBalance;
   
   let csvContent = 'FINAGENT INSTITUTIONAL PORTFOLIO DETAILED HEALTH & HOLDINGS AUDIT\n';
+  csvContent += 'EDUCATIONAL-USE DISCLAIMER: All Buy, Sell, Hold, Accumulate, or Trim signals in this report are strictly for educational research and simulated portfolio modeling. Not investment advice.\n';
   csvContent += `Generated At,${timestamp} IST\n`;
   csvContent += `Portfolio Health Score,${metrics.healthScore}/100\n`;
   csvContent += `Cardiac Rhythm Pulse,${metrics.bpm} BPM (${metrics.rhythmStatus})\n`;
