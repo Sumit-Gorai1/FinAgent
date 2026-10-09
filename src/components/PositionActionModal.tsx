@@ -71,12 +71,6 @@ export const PositionActionModal: React.FC<PositionActionModalProps> = ({
         setErrorMessage('Please specify a positive number of shares to buy.');
         return;
       }
-      if (!isBuyAffordable) {
-        setErrorMessage(
-          `Insufficient cash balance (₹${cashBalance.toLocaleString()}) for order of ₹${buyTotalCost.toLocaleString()}.`
-        );
-        return;
-      }
       onExecuteTrade(holding.symbol, 'BUY', tradeShares, currentPrice);
       onClose();
     } else if (action === 'TRIM') {
@@ -202,7 +196,7 @@ export const PositionActionModal: React.FC<PositionActionModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {action === 'BUY' && (
             <div className="space-y-3">
               <div className="space-y-1.5">
@@ -215,12 +209,10 @@ export const PositionActionModal: React.FC<PositionActionModalProps> = ({
                 </div>
                 <input
                   type="number"
-                  min="1"
-                  step="1"
+                  step="any"
                   value={tradeShares}
                   onChange={(e) => setTradeShares(Math.max(1, parseInt(e.target.value) || 1))}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-emerald-500"
-                  required
                 />
                 <div className="flex items-center gap-1 pt-1">
                   {[5, 10, 25, 50, 100].map((qty) => (
@@ -269,13 +261,10 @@ export const PositionActionModal: React.FC<PositionActionModalProps> = ({
                 </div>
                 <input
                   type="number"
-                  min="1"
-                  max={holding.shares}
-                  step="1"
+                  step="any"
                   value={trimSharesClamped}
                   onChange={(e) => setTradeShares(Math.max(1, parseInt(e.target.value) || 1))}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-rose-500"
-                  required
                 />
                 <div className="flex items-center gap-1 pt-1">
                   {[
@@ -331,24 +320,20 @@ export const PositionActionModal: React.FC<PositionActionModalProps> = ({
                   <label className="text-slate-300 font-semibold text-xs">TOTAL SHARES</label>
                   <input
                     type="number"
-                    min="1"
-                    step="1"
+                    step="any"
                     value={editShares}
                     onChange={(e) => setEditShares(Math.max(1, parseInt(e.target.value) || 1))}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-cyan-500"
-                    required
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-300 font-semibold text-xs">AVG BUY PRICE (₹)</label>
                   <input
                     type="number"
-                    min="0.1"
-                    step="0.05"
+                    step="any"
                     value={editAvgPrice}
                     onChange={(e) => setEditAvgPrice(parseFloat(e.target.value) || 0)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-cyan-500"
-                    required
                   />
                 </div>
               </div>

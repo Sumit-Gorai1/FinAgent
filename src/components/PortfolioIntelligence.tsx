@@ -32,6 +32,7 @@ import {
   ArrowUpDown,
   Compass,
   FileText,
+  RotateCcw,
 } from 'lucide-react';
 import {
   PieChart,
@@ -58,6 +59,7 @@ import { EducationalDisclaimer } from './EducationalDisclaimer';
 interface PortfolioIntelligenceProps {
   holdings: PortfolioHolding[];
   cashBalance?: number;
+  stocks?: Record<string, any>;
   onSelectStock: (symbol: string) => void;
   onOpenPaperTrade: () => void;
   onExecuteBatchOrders?: (
@@ -69,6 +71,9 @@ interface PortfolioIntelligenceProps {
   onUpdateHolding?: (symbol: string, newShares: number, newAvgBuyPrice?: number) => void;
   onQuickTrade?: (symbol: string, action: 'BUY' | 'TRIM', shares: number, price: number) => void;
   onUpdateCash?: (newBalance: number) => void;
+  onResetPortfolio?: () => void;
+  lastSavedTime?: string;
+  onSavePortfolio?: () => void;
 }
 
 type SortOption = 'VALUE_DESC' | 'VALUE_ASC' | 'DAY_PNL_DESC' | 'DAY_PNL_ASC' | 'TOTAL_PNL_DESC' | 'WEIGHT_DESC' | 'SCORE_DESC' | 'MOS_DESC';
@@ -77,6 +82,7 @@ type FilterPreset = 'ALL' | 'GAINERS' | 'LOSERS' | 'PROFIT' | 'LOSS' | 'HIGH_CON
 export const PortfolioIntelligence: React.FC<PortfolioIntelligenceProps> = ({
   holdings,
   cashBalance = 1000000,
+  stocks,
   onSelectStock,
   onOpenPaperTrade,
   onExecuteBatchOrders,
@@ -86,12 +92,16 @@ export const PortfolioIntelligence: React.FC<PortfolioIntelligenceProps> = ({
   onUpdateHolding,
   onQuickTrade,
   onUpdateCash,
+  onResetPortfolio,
+  lastSavedTime,
+  onSavePortfolio,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'rebalance' | 'heartbeat'>('overview');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedSectorFilter, setSelectedSectorFilter] = useState<string>('ALL');
   const [filterPreset, setFilterPreset] = useState<FilterPreset>('ALL');
   const [sortBy, setSortBy] = useState<SortOption>('VALUE_DESC');
+  const [justSavedNotice, setJustSavedNotice] = useState<string>('');
   
   // Modals state
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -339,9 +349,9 @@ export const PortfolioIntelligence: React.FC<PortfolioIntelligenceProps> = ({
   const handleRemoveClick = (e: React.MouseEvent, symbol: string) => {
     e.stopPropagation();
     if (onRemoveHolding) {
-      if (window.confirm(`Are you sure you want to remove ${symbol} from your portfolio?`)) {
-        onRemoveHolding(symbol);
-      }
+      onRemoveHolding(symbol);
+      setJustSavedNotice(`Removed ${symbol} • Changes Saved`);
+      setTimeout(() => setJustSavedNotice(''), 3000);
     }
   };
 
@@ -422,6 +432,24 @@ export const PortfolioIntelligence: React.FC<PortfolioIntelligenceProps> = ({
               <span>Detailed PDF Report</span>
             </button>
 
+            {/* Portfolio Auto-Saved indicator & Explicit Save Button */}
+            <button
+              onClick={() => {
+                if (onSavePortfolio) {
+                  onSavePortfolio();
+                }
+                setJustSavedNotice('✓ Saved to Storage');
+                setTimeout(() => setJustSavedNotice(''), 3000);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-emerald-900/60 hover:border-emerald-700/80 text-[11px] text-emerald-400 font-semibold transition-all shadow-sm"
+              title="Portfolio changes automatically save to your device. Click to save snapshot now."
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>
+                {justSavedNotice || (lastSavedTime ? `Saved (${lastSavedTime})` : 'Portfolio Saved')}
+              </span>
+            </button>
+
             <button
               onClick={() => setShowAddModal(true)}
               className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-950/40 transition-all"
@@ -437,7 +465,7 @@ export const PortfolioIntelligence: React.FC<PortfolioIntelligenceProps> = ({
                 className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border border-slate-700 transition-all"
               >
                 <Download className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Export</span>
+                <span>Export / Actions</span>
               </button>
 
               {showExportMenu && (
@@ -485,6 +513,25 @@ export const PortfolioIntelligence: React.FC<PortfolioIntelligenceProps> = ({
                       <span className="text-[10px] text-slate-400">All vitals & factor metrics</span>
                     </div>
                   </button>
+
+                  {onResetPortfolio && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Reset portfolio to the default institutional benchmark template?')) {
+                          onResetPortfolio();
+                          setShowExportMenu(false);
+                          setExportNotice('Portfolio has been reset to default template and saved.');
+                        }
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-rose-950/40 text-rose-400 hover:text-rose-300 flex items-center gap-2 transition-colors border-t border-slate-800 mt-1"
+                    >
+                      <RotateCcw className="w-4 h-4 text-rose-400 shrink-0" />
+                      <div>
+                        <span className="block font-bold">Reset to Default Portfolio</span>
+                        <span className="text-[10px] text-rose-400/80">Restore demo benchmark holdings</span>
+                      </div>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -552,15 +599,16 @@ export const PortfolioIntelligence: React.FC<PortfolioIntelligenceProps> = ({
         </div>
 
         {/* Cash Balance Display & Quick Adjustment Trigger */}
-        <div className="hidden md:flex items-center gap-3 bg-slate-900 px-3.5 py-1.5 rounded-2xl border border-slate-800 text-xs">
+        <div className="flex items-center gap-2.5 sm:gap-3 bg-slate-900 px-3 py-1.5 rounded-2xl border border-slate-800 text-xs">
           <div className="flex items-center gap-1.5 text-slate-400">
-            <Wallet className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Available Cash:</span>
+            <Wallet className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="hidden sm:inline">Available Cash:</span>
+            <span className="sm:hidden">Cash:</span>
             <span className="text-white font-bold">₹{cashBalance.toLocaleString()}</span>
           </div>
           <button
             onClick={() => setShowCashModal(true)}
-            className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 font-bold text-[11px] border border-slate-700 transition-colors"
+            className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 font-bold text-[11px] border border-slate-700 transition-colors whitespace-nowrap"
           >
             +/- Adjust Cash
           </button>
@@ -1128,6 +1176,7 @@ export const PortfolioIntelligence: React.FC<PortfolioIntelligenceProps> = ({
           onClose={() => setShowAddModal(false)}
           existingHoldings={holdings || []}
           cashBalance={cashBalance}
+          stocks={stocks}
           onAddHolding={(newH) => {
             if (onAddHolding) onAddHolding(newH);
             setShowAddModal(false);

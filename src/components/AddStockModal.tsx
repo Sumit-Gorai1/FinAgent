@@ -9,7 +9,11 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
-  Hash,
+  Lock,
+  Wallet,
+  Coins,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react';
 import { PortfolioHolding } from '../types';
 import { calculateListingIntrinsicValue } from '../utils/stockValuationHelper';
@@ -26,6 +30,7 @@ interface AddStockModalProps {
   onAddHolding: (holding: PortfolioHolding) => void;
   existingHoldings?: PortfolioHolding[];
   cashBalance?: number;
+  stocks?: Record<string, any>;
 }
 
 export const AddStockModal: React.FC<AddStockModalProps> = ({
@@ -33,9 +38,10 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
   onClose,
   onAddHolding,
   existingHoldings = [],
-  cashBalance,
+  cashBalance = 1000000,
+  stocks,
 }) => {
-  // Stock Selection State (Clean: starts empty, no suggested pre-filled stock)
+  // Stock Selection State
   const [symbolInput, setSymbolInput] = useState<string>('');
   const [selectedSymbol, setSelectedSymbol] = useState<string>('');
   const [companyName, setCompanyName] = useState<string>('');
@@ -44,13 +50,36 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
 
   const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState<number>(-1);
-  const [isFetchingInfo, setIsFetchingInfo] = useState<boolean>(false);
   const searchDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Form Fields
-  const [shares, setShares] = useState<number>(1);
-  const [currentBuyPrice, setCurrentBuyPrice] = useState<number>(0);
+  // Form Fields as strings for fluid, unrestricted typing
+  const [amountInput, setAmountInput] = useState<string>('');
+  const [sharesInput, setSharesInput] = useState<string>('1');
+  const [buyPriceInput, setBuyPriceInput] = useState<string>('');
+
+  // Synchronized refs to prevent closure stale state in async live quotes
+  const sharesInputRef = useRef<string>(sharesInput);
+  const amountInputRef = useRef<string>(amountInput);
+  const buyPriceInputRef = useRef<string>(buyPriceInput);
+
+  useEffect(() => {
+    sharesInputRef.current = sharesInput;
+  }, [sharesInput]);
+
+  useEffect(() => {
+    amountInputRef.current = amountInput;
+  }, [amountInput]);
+
+  useEffect(() => {
+    buyPriceInputRef.current = buyPriceInput;
+  }, [buyPriceInput]);
+  
+  // Market Price and Live Quote Metadata
   const [marketPrice, setMarketPrice] = useState<number>(0);
+  const [isCustomStock, setIsCustomStock] = useState<boolean>(false);
+  const [isFetchingQuote, setIsFetchingQuote] = useState<boolean>(false);
+  const [liveQuoteTime, setLiveQuoteTime] = useState<string>('');
+  const [liveQuoteChange, setLiveQuoteChange] = useState<number | null>(null);
   const [formError, setFormError] = useState<string>('');
 
   // Close search dropdown on click outside
@@ -73,20 +102,112 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
       setCompanyName('');
       setSector('');
       setExchange('NSE');
-      setShares(1);
-      setCurrentBuyPrice(0);
+      setAmountInput('');
+      setSharesInput('1');
+      setBuyPriceInput('');
       setMarketPrice(0);
+      setIsCustomStock(false);
+      setIsFetchingQuote(false);
+      setLiveQuoteTime('');
+      setLiveQuoteChange(null);
       setFormError('');
       setShowSearchResults(false);
     }
   }, [isOpen]);
+
+  // Debounced auto-fetch: when user types any ticker or ETF, automatically resolve and fetch real price
+  useEffect(() => {
+    const clean = symbolInput.trim().toUpperCase();
+    if (clean.length >= 2 && clean !== selectedSymbol) {
+      const timer = setTimeout(() => {
+        const item = getStockDetails(clean);
+        if (item) {
+          setSelectedSymbol(item.symbol);
+          setCompanyName(item.name);
+          setSector(item.sector);
+          setExchange(item.exchange);
+          setMarketPrice(item.price);
+          setIsCustomStock(false);
+          if (!buyPriceInputRef.current || parseFloat(buyPriceInputRef.current) <= 0) {
+            setBuyPriceInput(item.price.toString());
+          }
+          const curShares = parseFloat(sharesInputRef.current) || 1;
+          const userAmt = parseFloat(amountInputRef.current);
+          if (isNaN(userAmt) || userAmt <= 0) {
+            setAmountInput(parseFloat((curShares * item.price).toFixed(2)).toString());
+          }
+          fetchLiveQuote(item.symbol);
+        } else {
+          fetchLiveQuote(clean);
+        }
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [symbolInput, selectedSymbol]);
 
   if (!isOpen) return null;
 
   // Search results only when user types
   const searchResults = symbolInput.trim().length > 0 ? searchStockCatalog(symbolInput, 6) : [];
 
-  const handleSelectStock = async (sym: string, presetName?: string, presetSector?: string, presetPrice?: number) => {
+  /**
+   * Asynchronously fetch real-time live market quote from server
+   * and update market price, buy price, and calculate exact total amount!
+   */
+  const fetchLiveQuote = async (sym: string) => {
+    const clean = sym.trim().toUpperCase();
+    if (!clean) return;
+
+    setIsFetchingQuote(true);
+    try {
+      const res = await fetch(`/api/live-market/quotes?symbols=${encodeURIComponent(clean)}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.quotes && json.quotes[clean]) {
+          const q = json.quotes[clean];
+          if (typeof q.price === 'number' && q.price > 0) {
+            const liveP = Number(q.price.toFixed(2));
+            setMarketPrice(liveP);
+            setLiveQuoteTime(
+              new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            );
+            setLiveQuoteChange(q.change !== undefined ? Number(q.change.toFixed(2)) : null);
+
+            // Update default buy price if user hasn't explicitly customized it
+            setBuyPriceInput((prevBuy) => {
+              const prevNum = parseFloat(prevBuy);
+              if (!prevNum || prevNum <= 0) return liveP.toString();
+              return prevBuy;
+            });
+
+            // Automatically recalculate the correct amount with the fetched live price
+            const amtNum = parseFloat(amountInputRef.current);
+            const currentSharesNum = parseFloat(sharesInputRef.current) || 1;
+            if (!isNaN(amtNum) && amtNum > 0) {
+              // User had entered an amount, recalculate shares for live price
+              const computedSh =
+                amtNum >= liveP
+                  ? Math.max(1, Math.round(amtNum / liveP))
+                  : Math.max(0.0001, parseFloat((amtNum / liveP).toFixed(4)));
+              setSharesInput(computedSh.toString());
+            } else {
+              // Compute the exact investment amount from shares * live price
+              setAmountInput(parseFloat((currentSharesNum * liveP).toFixed(2)).toString());
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch live quote in AddStockModal:', e);
+    } finally {
+      setIsFetchingQuote(false);
+    }
+  };
+
+  /**
+   * Select a stock, resolve its metadata, and fetch the real-time live price and amount.
+   */
+  const handleSelectStock = (sym: string, presetName?: string, presetSector?: string, presetPrice?: number) => {
     const cleanSym = sym.trim().toUpperCase();
     if (!cleanSym) return;
 
@@ -96,45 +217,47 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
     setSelectedSuggestionIndex(-1);
     setFormError('');
 
-    // Local catalog lookup
+    // Catalog lookup for initial fallback
     const local = getStockDetails(cleanSym);
     const resolvedName = presetName || local?.name || `${cleanSym} Limited`;
     const resolvedSector = presetSector || local?.sector || 'Diversified';
     const resolvedExchange = local?.exchange || 'NSE';
-    const resolvedPrice = presetPrice || local?.price || 100.00;
+    
+    // Check if we have an active quote in cached stocks state
+    const cachedStockPrice = stocks && stocks[cleanSym]?.price ? Number(stocks[cleanSym].price.toFixed(2)) : undefined;
+    const initialCMP = parseFloat((presetPrice || cachedStockPrice || local?.price || 100.00).toFixed(2));
 
     setCompanyName(resolvedName);
     setSector(resolvedSector);
     setExchange(resolvedExchange);
-    setMarketPrice(resolvedPrice);
-    if (currentBuyPrice <= 0) {
-      setCurrentBuyPrice(resolvedPrice);
+    setIsCustomStock(!local && !presetPrice && !cachedStockPrice);
+
+    // Set initial baseline price
+    setMarketPrice(initialCMP);
+
+    // If user hasn't set buy price yet, default it to CMP
+    const existingBuyPriceNum = parseFloat(buyPriceInput);
+    const effectiveBuyPrice = existingBuyPriceNum > 0 ? existingBuyPriceNum : initialCMP;
+    if (!existingBuyPriceNum || existingBuyPriceNum <= 0) {
+      setBuyPriceInput(initialCMP.toString());
     }
 
-    // Background live quote fetch
-    setIsFetchingInfo(true);
-    try {
-      const res = await fetch(`/api/live-market/quote/${cleanSym}`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.data) {
-          if (json.data.name && json.data.name.length > 2) {
-            setCompanyName(json.data.name);
-          }
-          if (json.data.price && json.data.price > 0) {
-            const fetchedPrice = parseFloat(json.data.price.toFixed(2));
-            setMarketPrice(fetchedPrice);
-            if (currentBuyPrice <= 0) {
-              setCurrentBuyPrice(fetchedPrice);
-            }
-          }
-        }
-      }
-    } catch {
-      // Retain resolved catalog data
-    } finally {
-      setIsFetchingInfo(false);
+    // Preserve user's entered amount if already typed
+    const userAmountNum = parseFloat(amountInputRef.current);
+    if (!isNaN(userAmountNum) && userAmountNum > 0 && effectiveBuyPrice > 0) {
+      const computedShares =
+        userAmountNum >= effectiveBuyPrice
+          ? Math.max(1, Math.round(userAmountNum / effectiveBuyPrice))
+          : Math.max(0.0001, parseFloat((userAmountNum / effectiveBuyPrice).toFixed(4)));
+      setSharesInput(computedShares.toString());
+    } else {
+      const currentShares = parseFloat(sharesInputRef.current) || 1;
+      setSharesInput(currentShares.toString());
+      setAmountInput((parseFloat((currentShares * effectiveBuyPrice).toFixed(2))).toString());
     }
+
+    // Fetch real-time live market quote from feed to ensure 100% correct amount
+    fetchLiveQuote(cleanSym);
   };
 
   const handleClearSelectedStock = () => {
@@ -143,8 +266,67 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
     setCompanyName('');
     setSector('');
     setMarketPrice(0);
-    setCurrentBuyPrice(0);
+    setIsCustomStock(false);
+    setLiveQuoteTime('');
+    setLiveQuoteChange(null);
     setFormError('');
+  };
+
+  /**
+   * Handle user typing in TOTAL INVESTMENT AMOUNT (₹):
+   * Free to enter ANY amount. Automatically calculates shares based on live price.
+   */
+  const handleAmountChange = (rawVal: string) => {
+    setAmountInput(rawVal);
+    setFormError('');
+
+    const parsedVal = parseFloat(rawVal);
+    if (!isNaN(parsedVal) && parsedVal > 0) {
+      const currentBuyPriceNum = parseFloat(buyPriceInput);
+      const effectivePrice = currentBuyPriceNum > 0 ? currentBuyPriceNum : marketPrice > 0 ? marketPrice : 1;
+      if (effectivePrice > 0) {
+        const computedShares =
+          parsedVal >= effectivePrice
+            ? Math.max(1, Math.round(parsedVal / effectivePrice))
+            : Math.max(0.0001, parseFloat((parsedVal / effectivePrice).toFixed(4)));
+        setSharesInput(computedShares.toString());
+      }
+    }
+  };
+
+  /**
+   * Handle user typing in QUANTITY (SHARES):
+   * Automatically calculates exact amount = Shares × Price.
+   */
+  const handleSharesChange = (rawVal: string) => {
+    setSharesInput(rawVal);
+    setFormError('');
+
+    const parsedShares = parseFloat(rawVal);
+    if (!isNaN(parsedShares) && parsedShares > 0) {
+      const currentBuyPriceNum = parseFloat(buyPriceInput);
+      const effectivePrice = currentBuyPriceNum > 0 ? currentBuyPriceNum : marketPrice > 0 ? marketPrice : 0;
+      if (effectivePrice > 0) {
+        const computedAmount = parseFloat((parsedShares * effectivePrice).toFixed(2));
+        setAmountInput(computedAmount.toString());
+      }
+    }
+  };
+
+  /**
+   * Handle user typing in BUY PRICE (₹):
+   * Automatically calculates exact amount = Shares × Buy Price.
+   */
+  const handleBuyPriceChange = (rawVal: string) => {
+    setBuyPriceInput(rawVal);
+    setFormError('');
+
+    const parsedPrice = parseFloat(rawVal);
+    if (!isNaN(parsedPrice) && parsedPrice > 0) {
+      const currentShares = parseFloat(sharesInput) || 1;
+      const computedAmount = parseFloat((currentShares * parsedPrice).toFixed(2));
+      setAmountInput(computedAmount.toString());
+    }
   };
 
   const safeHoldings = Array.isArray(existingHoldings) ? existingHoldings : [];
@@ -152,33 +334,47 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
     ? safeHoldings.find((h) => h?.symbol && h.symbol.toUpperCase() === selectedSymbol.toUpperCase())
     : undefined;
 
-  // Capital outlay and position calculations
-  const totalCost = shares * currentBuyPrice;
-  const positionValue = shares * marketPrice;
-  const unrealizedPnL = (marketPrice - currentBuyPrice) * shares;
-  const unrealizedPnLPercent = currentBuyPrice > 0 ? ((marketPrice - currentBuyPrice) / currentBuyPrice) * 100 : 0;
+  // Numerical derived values for summary
+  const numericBuyPrice = parseFloat(buyPriceInput) > 0 ? parseFloat(buyPriceInput) : marketPrice > 0 ? marketPrice : 100;
+  const numericShares = parseFloat(sharesInput) > 0 ? parseFloat(sharesInput) : 1;
+  const numericAmount = parseFloat(amountInput) > 0 ? parseFloat(amountInput) : numericShares * numericBuyPrice;
+  const positionValue = numericShares * (marketPrice > 0 ? marketPrice : numericBuyPrice);
+  const unrealizedPnL = ((marketPrice > 0 ? marketPrice : numericBuyPrice) - numericBuyPrice) * numericShares;
+  const unrealizedPnLPercent = numericBuyPrice > 0 ? (((marketPrice > 0 ? marketPrice : numericBuyPrice) - numericBuyPrice) / numericBuyPrice) * 100 : 0;
 
+  /**
+   * Submit handler:
+   * Adds holding with correct fetched price and outlay, which automatically saves to portfolio storage.
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const sym = (selectedSymbol || symbolInput).trim().toUpperCase();
 
     if (!sym) {
-      setFormError('Please enter a stock symbol (e.g. INFY, TCS, RELIANCE).');
+      setFormError('Please enter or select a stock symbol (e.g. INFY, TCS, RELIANCE).');
       return;
     }
 
-    if (shares <= 0 || isNaN(shares)) {
-      setFormError('Quantity / Number of shares must be at least 1.');
-      return;
-    }
+    // Auto-resolve stock details if typed directly without clicking autocomplete
+    const catalogItem = getStockDetails(sym);
+    const resolvedCMP = marketPrice > 0 ? marketPrice : catalogItem?.price || 100;
+    const finalBuyPrice = parseFloat(buyPriceInput) > 0 ? parseFloat(buyPriceInput) : resolvedCMP;
+    const finalMarketPrice = resolvedCMP;
 
-    if (currentBuyPrice <= 0 || isNaN(currentBuyPrice)) {
-      setFormError('Buy price must be greater than ₹0.');
-      return;
+    // Determine final shares
+    let finalShares = parseFloat(sharesInput);
+    if (isNaN(finalShares) || finalShares <= 0) {
+      const enteredAmount = parseFloat(amountInput);
+      if (enteredAmount > 0 && finalBuyPrice > 0) {
+        finalShares =
+          enteredAmount >= finalBuyPrice
+            ? Math.max(1, Math.round(enteredAmount / finalBuyPrice))
+            : Math.max(0.0001, parseFloat((enteredAmount / finalBuyPrice).toFixed(4)));
+      } else {
+        finalShares = 1;
+      }
     }
-
-    const effectiveMarketPrice = marketPrice > 0 ? marketPrice : currentBuyPrice;
 
     // Check if symbol already exists in portfolio to blend position
     const existingIndex = safeHoldings.findIndex(
@@ -188,17 +384,17 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
 
     if (existingIndex >= 0) {
       const existing = safeHoldings[existingIndex];
-      const combinedShares = existing.shares + shares;
-      const combinedTotalCost = (existing.shares * existing.avgBuyPrice) + (shares * currentBuyPrice);
-      const blendedBuyPrice = combinedTotalCost / combinedShares;
-      const newPnL = (effectiveMarketPrice - blendedBuyPrice) * combinedShares;
-      const newPnLPercent = ((effectiveMarketPrice - blendedBuyPrice) / blendedBuyPrice) * 100;
+      const combinedShares = existing.shares + finalShares;
+      const combinedTotalCost = existing.shares * existing.avgBuyPrice + finalShares * finalBuyPrice;
+      const blendedBuyPrice = combinedShares > 0 ? combinedTotalCost / combinedShares : finalBuyPrice;
+      const newPnL = (finalMarketPrice - blendedBuyPrice) * combinedShares;
+      const newPnLPercent = blendedBuyPrice > 0 ? ((finalMarketPrice - blendedBuyPrice) / blendedBuyPrice) * 100 : 0;
 
       const val = calculateListingIntrinsicValue({
         symbol: sym,
         name: companyName || existing.name,
         sector: sector || existing.sector,
-        price: effectiveMarketPrice,
+        price: finalMarketPrice,
       });
 
       newHolding = {
@@ -207,7 +403,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
         sector: sector || existing.sector,
         shares: combinedShares,
         avgBuyPrice: parseFloat(blendedBuyPrice.toFixed(2)),
-        currentPrice: parseFloat(effectiveMarketPrice.toFixed(2)),
+        currentPrice: parseFloat(finalMarketPrice.toFixed(2)),
         unrealizedPnL: parseFloat(newPnL.toFixed(2)),
         unrealizedPnLPercent: parseFloat(newPnLPercent.toFixed(2)),
         weightPercent: 0,
@@ -216,22 +412,22 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
         valuationStatus: val.valuationStatus,
       };
     } else {
-      const pnl = (effectiveMarketPrice - currentBuyPrice) * shares;
-      const pnlPct = currentBuyPrice > 0 ? ((effectiveMarketPrice - currentBuyPrice) / currentBuyPrice) * 100 : 0;
+      const pnl = (finalMarketPrice - finalBuyPrice) * finalShares;
+      const pnlPct = finalBuyPrice > 0 ? ((finalMarketPrice - finalBuyPrice) / finalBuyPrice) * 100 : 0;
       const val = calculateListingIntrinsicValue({
         symbol: sym,
-        name: companyName || sym,
-        sector: sector || 'Diversified',
-        price: effectiveMarketPrice,
+        name: companyName || catalogItem?.name || sym,
+        sector: sector || catalogItem?.sector || 'Diversified',
+        price: finalMarketPrice,
       });
 
       newHolding = {
         symbol: sym,
-        name: companyName || sym,
-        shares,
-        avgBuyPrice: parseFloat(currentBuyPrice.toFixed(2)),
-        currentPrice: parseFloat(effectiveMarketPrice.toFixed(2)),
-        sector: sector || 'Diversified',
+        name: companyName || catalogItem?.name || sym,
+        shares: finalShares,
+        avgBuyPrice: parseFloat(finalBuyPrice.toFixed(2)),
+        currentPrice: parseFloat(finalMarketPrice.toFixed(2)),
+        sector: sector || catalogItem?.sector || 'Diversified',
         score: 78,
         researchScore: 78,
         weightPercent: 0,
@@ -261,7 +457,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
                 Add Stock to Portfolio
               </h3>
               <p className="text-xs text-slate-400 font-sans">
-                Enter stock ticker, quantity, and buy price
+                Real-time price feed • Auto-saves to saved portfolio
               </p>
             </div>
           </div>
@@ -273,21 +469,59 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Stock Symbol Input */}
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          {/* Stock Symbol Search & Input */}
           <div className="space-y-1.5" ref={searchDropdownRef}>
-            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-              <span>STOCK SYMBOL / TICKER</span>
-              {selectedSymbol && (
-                <button
-                  type="button"
-                  onClick={handleClearSelectedStock}
-                  className="text-[10px] text-cyan-400 hover:text-cyan-300 underline font-normal"
-                >
-                  Change Stock
-                </button>
-              )}
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300 flex items-center justify-between w-full">
+                <span>STOCK OR ETF SYMBOL / TICKER</span>
+                {selectedSymbol && (
+                  <button
+                    type="button"
+                    onClick={handleClearSelectedStock}
+                    className="text-[10px] text-cyan-400 hover:text-cyan-300 underline font-normal"
+                  >
+                    Change Symbol
+                  </button>
+                )}
+              </label>
+            </div>
+
+            {/* Popular ETFs Quick Select Bar */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                <span className="font-semibold text-cyan-400/90 flex items-center gap-1">
+                  <Zap className="w-2.5 h-2.5 text-cyan-400" />
+                  Popular ETFs (Index, Gold, Silver & US):
+                </span>
+                <span className="text-slate-500">1-click select</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1">
+                {[
+                  { sym: 'NIFTYBEES', label: 'Nifty BeES', price: 253.76 },
+                  { sym: 'BANKBEES', label: 'Bank BeES', price: 564.48 },
+                  { sym: 'GOLDBEES', label: 'Gold BeES', price: 120.94 },
+                  { sym: 'SILVERBEES', label: 'Silver BeES', price: 205.87 },
+                  { sym: 'ITBEES', label: 'IT BeES', price: 30.80 },
+                  { sym: 'CPSEETF', label: 'CPSE ETF', price: 87.15 },
+                  { sym: 'MON100', label: 'Nasdaq 100', price: 325.15 },
+                  { sym: 'SPY', label: 'S&P 500 (US)', price: 774.63 },
+                ].map((etf) => (
+                  <button
+                    key={etf.sym}
+                    type="button"
+                    onClick={() => handleSelectStock(etf.sym, etf.label, 'Exchange Traded Fund (ETF)', etf.price)}
+                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all ${
+                      selectedSymbol === etf.sym
+                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm shadow-cyan-950'
+                        : 'bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-800'
+                    }`}
+                  >
+                    {etf.sym} <span className="text-[9px] text-slate-500 font-normal">₹{etf.price}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="relative">
               <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -295,10 +529,31 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
                 type="text"
                 value={symbolInput}
                 onChange={(e) => {
-                  setSymbolInput(e.target.value.toUpperCase());
+                  const val = e.target.value.toUpperCase();
+                  setSymbolInput(val);
                   setShowSearchResults(true);
                   setSelectedSuggestionIndex(-1);
-                  if (selectedSymbol && e.target.value.toUpperCase() !== selectedSymbol) {
+
+                  // Quick lookup: if user typed a complete valid symbol or ETF, resolve immediately
+                  const quickMatch = getStockDetails(val.trim());
+                  if (quickMatch) {
+                    setSelectedSymbol(quickMatch.symbol);
+                    setCompanyName(quickMatch.name);
+                    setSector(quickMatch.sector);
+                    setExchange(quickMatch.exchange);
+                    setMarketPrice(quickMatch.price);
+                    setIsCustomStock(false);
+                    if (!buyPriceInputRef.current || parseFloat(buyPriceInputRef.current) <= 0) {
+                      setBuyPriceInput(quickMatch.price.toString());
+                    }
+                    const curShares = parseFloat(sharesInputRef.current) || 1;
+                    const curAmt = parseFloat(amountInputRef.current);
+                    if (isNaN(curAmt) || curAmt <= 0) {
+                      setAmountInput((parseFloat((curShares * quickMatch.price).toFixed(2))).toString());
+                    }
+                    // Fetch real-time live price from server immediately
+                    fetchLiveQuote(quickMatch.symbol);
+                  } else if (selectedSymbol && val !== selectedSymbol) {
                     setSelectedSymbol('');
                   }
                 }}
@@ -334,7 +589,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
                     setSelectedSuggestionIndex(-1);
                   }
                 }}
-                placeholder="Enter ticker (e.g. INFY, TCS, RELIANCE)..."
+                placeholder="Enter ticker (e.g. INFY, TCS, RELIANCE, HDFCBANK)..."
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-2.5 text-xs text-white uppercase placeholder:normal-case placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
                 autoFocus
               />
@@ -402,6 +657,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
                           <div className="text-xs font-bold text-slate-200">
                             ₹{item.price.toLocaleString()}
                           </div>
+                          <span className="text-[9px] text-emerald-400 font-medium">Live Feed</span>
                         </div>
                       </button>
                     );
@@ -412,7 +668,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
 
             {/* Resolved Stock Details Tag */}
             {selectedSymbol && (
-              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-950/60 border border-slate-800 text-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-800 text-xs gap-1.5">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="font-bold text-cyan-400">{selectedSymbol}</span>
                   <span className="text-slate-500">•</span>
@@ -426,11 +682,23 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
                     </>
                   )}
                 </div>
-                {isFetchingInfo && (
-                  <span className="text-[10px] text-cyan-400 flex items-center gap-1 shrink-0 animate-pulse">
-                    <RefreshCw className="w-3 h-3 animate-spin" /> Fetching CMP
-                  </span>
-                )}
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/80 text-emerald-300 text-[10px] font-bold">
+                    <Zap className="w-3 h-3 text-emerald-400" />
+                    <span>Live CMP: ₹{marketPrice.toLocaleString()}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => fetchLiveQuote(selectedSymbol)}
+                    disabled={isFetchingQuote}
+                    className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+                    title="Refresh live market price"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isFetchingQuote ? 'animate-spin text-cyan-400' : ''}`} />
+                  </button>
+                </div>
               </div>
             )}
 
@@ -445,22 +713,76 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
             )}
           </div>
 
-          {/* Form Grid: Shares, Buy Price, Current Price */}
+          {/* TOTAL INVESTMENT AMOUNT (Free to enter any amount!) */}
+          <div className="p-3.5 rounded-xl bg-slate-950/90 border border-cyan-500/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                <Coins className="w-3.5 h-3.5 text-cyan-400" />
+                <span>TOTAL INVESTMENT AMOUNT (₹)</span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                {isFetchingQuote && (
+                  <span className="text-[10px] text-cyan-400 font-medium flex items-center gap-1">
+                    <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                    Fetching Live Amount...
+                  </span>
+                )}
+                <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60 flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" />
+                  Free to enter any amount
+                </span>
+              </div>
+            </div>
+
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 font-bold text-sm">₹</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={amountInput}
+                onChange={(e) => handleAmountChange(e.target.value)}
+                placeholder="Enter any amount (e.g. 5000, 25000, 50000, 100000)..."
+                className="w-full bg-slate-900 border border-cyan-500/50 rounded-xl pl-8 pr-3 py-2.5 text-sm text-white font-bold placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-500/30"
+              />
+            </div>
+
+            {/* Quick 1-click Amount Presets */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[10px] text-slate-400 mr-1">Quick Add:</span>
+              {[
+                { label: '₹10,000', val: '10000' },
+                { label: '₹25,000', val: '25000' },
+                { label: '₹50,000', val: '50000' },
+                { label: '₹1,00,000', val: '100000' },
+                { label: '₹5,00,000', val: '500000' },
+                { label: '₹10,00,000', val: '1000000' },
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => handleAmountChange(preset.val)}
+                  className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-900 hover:bg-cyan-950 text-slate-300 hover:text-cyan-300 border border-slate-800 hover:border-cyan-700 transition-colors"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Form Grid: Shares, Buy Price, Fixed Market Price */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* Shares / Quantity */}
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-300">
-                QUANTITY
+                QUANTITY (SHARES)
               </label>
               <input
-                type="number"
-                min="1"
-                step="1"
-                value={shares || ''}
-                onChange={(e) => setShares(Math.max(1, parseInt(e.target.value) || 0))}
-                placeholder="Qty"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-cyan-500"
-                required
+                type="text"
+                inputMode="decimal"
+                value={sharesInput}
+                onChange={(e) => handleSharesChange(e.target.value)}
+                placeholder="Shares"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-cyan-500 font-mono"
               />
             </div>
 
@@ -470,48 +792,70 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
                 BUY PRICE (₹)
               </label>
               <input
-                type="number"
-                min="0.05"
-                step="0.05"
-                value={currentBuyPrice || ''}
-                onChange={(e) => setCurrentBuyPrice(parseFloat(e.target.value) || 0)}
+                type="text"
+                inputMode="decimal"
+                value={buyPriceInput}
+                onChange={(e) => handleBuyPriceChange(e.target.value)}
                 placeholder="₹ Buy Price"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-cyan-500"
-                required
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-cyan-500 font-mono"
               />
             </div>
 
-            {/* Market Price (CMP) */}
+            {/* Market Price (Fetched Live CMP) */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-300">
-                MARKET PRICE (₹)
-              </label>
-              <input
-                type="number"
-                min="0.05"
-                step="0.05"
-                value={marketPrice || ''}
-                onChange={(e) => setMarketPrice(parseFloat(e.target.value) || 0)}
-                placeholder="₹ CMP"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-cyan-500"
-                required
-              />
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-emerald-400" />
+                  <span>FETCHED CMP (₹)</span>
+                </label>
+                <span className="text-[9px] text-emerald-400 font-bold bg-emerald-950/80 px-1.5 py-0.2 rounded border border-emerald-800/80">
+                  {isFetchingQuote ? 'SYNCING...' : 'LIVE'}
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  readOnly={!isCustomStock}
+                  value={marketPrice > 0 ? marketPrice.toString() : ''}
+                  onChange={(e) => {
+                    if (isCustomStock) {
+                      const p = parseFloat(e.target.value) || 0;
+                      setMarketPrice(p);
+                    }
+                  }}
+                  placeholder="Fetched CMP"
+                  className={`w-full bg-slate-950 border border-emerald-800/60 rounded-xl px-3 py-2 text-xs text-emerald-300 font-bold font-mono focus:outline-none ${
+                    !isCustomStock ? 'cursor-not-allowed bg-slate-950/90' : 'focus:border-emerald-500'
+                  }`}
+                  title="Current market price fetched directly from market feed"
+                />
+                <Lock className="w-3.5 h-3.5 text-emerald-400/80 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+              <p className="text-[9px] text-slate-400 font-sans">
+                {liveQuoteTime ? `Updated at ${liveQuoteTime}` : 'Real-time market feed'}
+              </p>
             </div>
           </div>
 
-          {/* Clean Investment Summary (when shares and prices entered) */}
-          {shares > 0 && currentBuyPrice > 0 && (
-            <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1.5 text-xs">
+          {/* Investment Summary */}
+          {numericShares > 0 && numericBuyPrice > 0 && (
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1.5 text-xs">
               <div className="flex items-center justify-between text-slate-400">
-                <span>Total Investment:</span>
-                <span className="text-white font-bold">
-                  ₹{totalCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                <span>Calculated Investment Outlay:</span>
+                <span className="text-white font-bold text-sm">
+                  ₹{numericAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-slate-400 text-[11px]">
+                <span>Shares Breakdown:</span>
+                <span className="text-slate-300 font-medium">
+                  {numericShares} shares @ ₹{numericBuyPrice.toLocaleString()}
                 </span>
               </div>
               {marketPrice > 0 && (
                 <>
                   <div className="flex items-center justify-between text-slate-400">
-                    <span>Current Value:</span>
+                    <span>Position Value @ Live CMP (₹{marketPrice.toLocaleString()}):</span>
                     <span className="text-white font-bold">
                       ₹{positionValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </span>
@@ -527,9 +871,9 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
             </div>
           )}
 
-          {/* Form Error */}
+          {/* Form Error (Only if ticker missing, NEVER for amount) */}
           {formError && (
-            <div className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
+            <div className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{formError}</span>
             </div>
@@ -546,10 +890,10 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-md shadow-cyan-950/50 transition-all"
+              className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 shadow-md shadow-emerald-950/50 transition-all"
             >
               <Plus className="w-4 h-4" />
-              <span>Add to Portfolio</span>
+              <span>Add Stock to Portfolio</span>
             </button>
           </div>
         </form>

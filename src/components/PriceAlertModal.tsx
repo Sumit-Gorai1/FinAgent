@@ -152,7 +152,7 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({
 
         {/* TAB 1: Create New Alert Form */}
         {activeTab === 'create' && (
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
             {/* Condition selector */}
             <div>
               <label className="block text-xs font-mono text-slate-300 mb-2">
@@ -226,10 +226,9 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({
                 </span>
                 <input
                   type="number"
-                  step="0.5"
+                  step="any"
                   value={targetPrice}
                   onChange={(e) => setTargetPrice(Number(e.target.value))}
-                  required
                   className="w-full pl-8 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:outline-none text-white font-mono text-lg font-bold"
                 />
               </div>

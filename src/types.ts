@@ -103,6 +103,7 @@ export interface NewsArticle {
   tags: string[];
   url?: string;
   timestamp?: number;
+  timeHorizon?: '2-4h' | '24h' | string;
 }
 
 export interface SectorMacroChain {

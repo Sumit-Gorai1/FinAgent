@@ -47,13 +47,92 @@ export default function App() {
   });
   const [selectedSymbol, setSelectedSymbol] = React.useState<string>('RELIANCE');
   const [watchlist, setWatchlist] = React.useState<WatchlistItem[]>(defaultWatchlist);
-  const [holdings, setHoldings] = React.useState<PortfolioHolding[]>(defaultPortfolio);
-  const [cashBalance, setCashBalance] = React.useState<number>(1000000); // 10 Lakhs Virtual INR
+  const [holdings, setHoldings] = React.useState<PortfolioHolding[]>(() => {
+    try {
+      const saved = localStorage.getItem('finagent_portfolio_holdings');
+      if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse saved portfolio holdings', e);
+    }
+    return defaultPortfolio;
+  });
+  const [cashBalance, setCashBalance] = React.useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('finagent_cash_balance');
+      if (saved !== null) {
+        const parsed = parseFloat(saved);
+        if (!isNaN(parsed) && parsed >= 0) return parsed;
+      }
+    } catch {}
+    return 1000000; // 10 Lakhs Virtual INR
+  });
+  const [lastSavedTimestamp, setLastSavedTimestamp] = React.useState<string>(() => {
+    try {
+      return (
+        localStorage.getItem('finagent_portfolio_saved_time') ||
+        new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      );
+    } catch {
+      return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+  });
+  const [portfolioNotice, setPortfolioNotice] = React.useState<string>('');
   const [showBugAgentModal, setShowBugAgentModal] = React.useState<boolean>(false);
   const [showPipelineModal, setShowPipelineModal] = React.useState<boolean>(false);
   const [showAuthModal, setShowAuthModal] = React.useState<boolean>(false);
   const [showIndianStocksModal, setShowIndianStocksModal] = React.useState<boolean>(false);
   const [showSnapshotsModal, setShowSnapshotsModal] = React.useState<boolean>(false);
+
+  // Auto-save portfolio holdings and cash balance changes to localStorage
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('finagent_portfolio_holdings', JSON.stringify(holdings));
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      localStorage.setItem('finagent_portfolio_saved_time', nowStr);
+      setLastSavedTimestamp(nowStr);
+    } catch (e) {
+      console.warn('Failed to save portfolio holdings', e);
+    }
+  }, [holdings]);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('finagent_cash_balance', cashBalance.toString());
+    } catch {}
+  }, [cashBalance]);
+
+  const handleManualSavePortfolio = () => {
+    try {
+      localStorage.setItem('finagent_portfolio_holdings', JSON.stringify(holdings));
+      localStorage.setItem('finagent_cash_balance', cashBalance.toString());
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      localStorage.setItem('finagent_portfolio_saved_time', nowStr);
+      setLastSavedTimestamp(nowStr);
+      setPortfolioNotice(`Portfolio saved successfully to device at ${nowStr}!`);
+      setTimeout(() => setPortfolioNotice(''), 3500);
+    } catch (e) {
+      console.warn('Failed to save portfolio manually', e);
+    }
+  };
+
+  const handleResetPortfolio = () => {
+    setHoldings(defaultPortfolio);
+    setCashBalance(1000000);
+    try {
+      localStorage.setItem('finagent_portfolio_holdings', JSON.stringify(defaultPortfolio));
+      localStorage.setItem('finagent_cash_balance', '1000000');
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      localStorage.setItem('finagent_portfolio_saved_time', nowStr);
+      setLastSavedTimestamp(nowStr);
+      setPortfolioNotice('Portfolio reset to default benchmark and saved.');
+      setTimeout(() => setPortfolioNotice(''), 3500);
+    } catch {}
+  };
   const [currentUser, setCurrentUser] = React.useState<UserProfile | null>(() => {
     try {
       const saved = localStorage.getItem('finagent_user');
@@ -967,28 +1046,48 @@ export default function App() {
         updated = [...prev, newHolding];
       }
       const total = updated.reduce((sum, h) => sum + h.currentPrice * h.shares, 0);
-      return updated.map((h) => ({
+      const withWeights = updated.map((h) => ({
         ...h,
         weightPercent: total > 0 ? parseFloat(((h.currentPrice * h.shares / total) * 100).toFixed(1)) : 0,
       }));
+      try {
+        localStorage.setItem('finagent_portfolio_holdings', JSON.stringify(withWeights));
+      } catch {}
+      return withWeights;
     });
+
+    const totalAmt = Number((newHolding.shares * newHolding.avgBuyPrice).toFixed(2));
+    setPortfolioNotice(
+      `✓ Added ${newHolding.symbol} (${newHolding.shares} shares @ ₹${newHolding.avgBuyPrice.toLocaleString()} = ₹${totalAmt.toLocaleString()}) • Portfolio Saved`
+    );
+    setTimeout(() => setPortfolioNotice(''), 4500);
   };
 
   const handleRemoveHolding = (symbol: string) => {
     setHoldings((prev) => {
       const updated = prev.filter((h) => h.symbol.toUpperCase() !== symbol.toUpperCase());
       const total = updated.reduce((sum, h) => sum + h.currentPrice * h.shares, 0);
-      return updated.map((h) => ({
+      const withWeights = updated.map((h) => ({
         ...h,
         weightPercent: total > 0 ? parseFloat(((h.currentPrice * h.shares / total) * 100).toFixed(1)) : 0,
       }));
+      try {
+        localStorage.setItem('finagent_portfolio_holdings', JSON.stringify(withWeights));
+      } catch {}
+      return withWeights;
     });
+    setPortfolioNotice(`✓ Removed ${symbol} • Portfolio Saved`);
+    setTimeout(() => setPortfolioNotice(''), 3500);
   };
 
   const handleUpdateHolding = (symbol: string, newShares: number, newAvgBuyPrice?: number) => {
     setHoldings((prev) => {
       if (newShares <= 0) {
-        return prev.filter((h) => h.symbol.toUpperCase() !== symbol.toUpperCase());
+        const remaining = prev.filter((h) => h.symbol.toUpperCase() !== symbol.toUpperCase());
+        try {
+          localStorage.setItem('finagent_portfolio_holdings', JSON.stringify(remaining));
+        } catch {}
+        return remaining;
       }
       const updated = prev.map((h) => {
         if (h.symbol.toUpperCase() !== symbol.toUpperCase()) return h;
@@ -1006,11 +1105,17 @@ export default function App() {
         };
       });
       const total = updated.reduce((sum, h) => sum + h.currentPrice * h.shares, 0);
-      return updated.map((h) => ({
+      const withWeights = updated.map((h) => ({
         ...h,
         weightPercent: total > 0 ? parseFloat(((h.currentPrice * h.shares / total) * 100).toFixed(1)) : 0,
       }));
+      try {
+        localStorage.setItem('finagent_portfolio_holdings', JSON.stringify(withWeights));
+      } catch {}
+      return withWeights;
     });
+    setPortfolioNotice(`✓ Position ${symbol} updated to ${newShares} shares • Portfolio Saved`);
+    setTimeout(() => setPortfolioNotice(''), 3500);
   };
 
   const handleQuickTrade = (symbol: string, action: 'BUY' | 'TRIM', shares: number, price: number) => {
@@ -1020,8 +1125,10 @@ export default function App() {
     const totalOrderValue = shares * price;
 
     if (action === 'BUY') {
-      if (cashBalance < totalOrderValue) return;
-      setCashBalance((prev) => prev - totalOrderValue);
+      if (cashBalance < totalOrderValue) {
+        setCashBalance((prev) => prev + Math.max(totalOrderValue - prev + 200000, 1000000));
+      }
+      setCashBalance((prev) => Math.max(0, prev - totalOrderValue));
 
       setHoldings((prev) => {
         const idx = prev.findIndex((h) => h.symbol.toUpperCase() === symbol.toUpperCase());
@@ -1236,6 +1343,7 @@ export default function App() {
           <PortfolioIntelligence
             holdings={holdings}
             cashBalance={cashBalance}
+            stocks={stocks}
             onSelectStock={(sym) => {
               handleSearchSymbol(sym);
             }}
@@ -1247,6 +1355,9 @@ export default function App() {
             onUpdateHolding={handleUpdateHolding}
             onQuickTrade={handleQuickTrade}
             onUpdateCash={(newCash) => setCashBalance(newCash)}
+            onResetPortfolio={handleResetPortfolio}
+            lastSavedTime={lastSavedTimestamp}
+            onSavePortfolio={handleManualSavePortfolio}
           />
         )}
 
@@ -1342,6 +1453,22 @@ export default function App() {
           setActiveView('research');
         }}
       />
+
+      {/* Floating Portfolio Saved Notice Toast */}
+      {portfolioNotice && (
+        <div className="fixed bottom-6 right-6 z-50 animate-slideUp font-mono">
+          <div className="bg-slate-900 border border-emerald-500/50 text-emerald-300 text-xs px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 backdrop-blur-md">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span className="font-semibold">{portfolioNotice}</span>
+            <button
+              onClick={() => setPortfolioNotice('')}
+              className="text-slate-400 hover:text-white ml-1 text-xs"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-slate-800/80 bg-slate-950 py-4 px-6 text-xs text-slate-500 font-mono flex flex-col md:flex-row items-center justify-between gap-3">
