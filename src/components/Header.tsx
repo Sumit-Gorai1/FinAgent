@@ -14,7 +14,6 @@ import {
   Mail,
   User,
   LogOut,
-  CreditCard,
   X,
   Radio,
   Globe2,

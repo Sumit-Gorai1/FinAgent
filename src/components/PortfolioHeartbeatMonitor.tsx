@@ -634,11 +634,11 @@ export const PortfolioHeartbeatMonitor: React.FC<PortfolioHeartbeatMonitorProps>
 
       // --- 4. Minimalist HUD Telemetry Overlay ---
       ctx.save();
-      ctx.font = `bold ${Math.round(10 * dpr)}px monospace`;
+      ctx.font = `bold ${Math.round(10 * dpr)}px 'Calibri', 'Carlito', Candara, 'Segoe UI', Arial, sans-serif`;
       ctx.fillStyle = isSystole ? themeColorHex : '#64748b';
       ctx.fillText(isSystole ? '• VENTRICULAR CONTRACTION' : '• DIASTOLIC REFILL', 14 * dpr, 18 * dpr);
 
-      ctx.font = `${Math.round(9 * dpr)}px monospace`;
+      ctx.font = `${Math.round(9 * dpr)}px 'Calibri', 'Carlito', Candara, 'Segoe UI', Arial, sans-serif`;
       ctx.fillStyle = '#475569';
       ctx.fillText(`${targetBpm} BPM`, 14 * dpr, height - 12 * dpr);
       ctx.restore();

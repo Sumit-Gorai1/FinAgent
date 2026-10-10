@@ -296,11 +296,19 @@ export interface WatchlistItem {
   price: number;
   changePercent: number;
   score: number;
-  statusTag: 'POSITIVE' | 'NEUTRAL' | 'CAUTION';
+  statusTag?: 'POSITIVE' | 'NEUTRAL' | 'CAUTION';
   thesisAlert?: string;
-  lastAnalyzed: string;
+  lastAnalyzed?: string;
   intrinsicValue?: number;
   marginOfSafetyPercent?: number;
+  currency?: string;
+  committeeScore?: number;
+  thesisStatus?: string;
+  thesisChanged?: boolean;
+  lastEvaluated?: string;
+  sector?: string;
+  isEtf?: boolean;
+  exchange?: string;
 }
 
 export interface AlertNotification {
@@ -502,65 +510,10 @@ export interface UserProfile {
   loginMethod: 'EMAIL_PASSWORD' | 'EMAIL_OTP' | 'MAGIC_LINK';
   lastLogin: string;
   createdAt: string;
-  subscription?: UserSubscription;
   preferences?: {
     notificationsEnabled: boolean;
     defaultCurrency: string;
   };
-}
-
-export type SubscriptionPlanTier = 'free' | 'pro' | 'institutional';
-export type BillingPeriod = 'monthly' | 'annual';
-
-export interface SubscriptionPlan {
-  id: SubscriptionPlanTier;
-  name: string;
-  tagline: string;
-  priceINRMonthly: number;
-  priceINRAnnual: number; // per year
-  priceUSDMonthly: number;
-  priceUSDAnnual: number;
-  popular?: boolean;
-  features: string[];
-  limitations?: string[];
-  stripePriceIdMonthly?: string;
-  stripePriceIdAnnual?: string;
-}
-
-export interface UserSubscription {
-  planId: SubscriptionPlanTier;
-  status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'none';
-  billingPeriod: BillingPeriod;
-  currency: 'INR' | 'USD';
-  currentPeriodStart: string;
-  currentPeriodEnd: string;
-  cancelAtPeriodEnd: boolean;
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
-  invoices: SubscriptionInvoice[];
-}
-
-export interface SubscriptionInvoice {
-  id: string;
-  invoiceNumber: string;
-  date: string;
-  amount: number;
-  currency: 'INR' | 'USD';
-  status: 'paid' | 'pending' | 'failed';
-  planName: string;
-  billingPeriod: BillingPeriod;
-  paymentMethod: string;
-  pdfDownloadUrl?: string;
-}
-
-export interface CheckoutSessionResponse {
-  success: boolean;
-  url?: string;
-  sessionId?: string;
-  mode: 'stripe_hosted' | 'sandbox_simulated';
-  message?: string;
-  error?: string;
-  planId?: SubscriptionPlanTier;
 }
 
 export interface PipelineDepthEntry {

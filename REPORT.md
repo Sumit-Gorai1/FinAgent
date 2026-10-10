@@ -291,6 +291,59 @@ $$\text{Shares Allocation} = \max\left(1, \left\lfloor \frac{\text{Budget Amount
 
 ---
 
+## Layer 7: Open Institutional Access Architecture (Zero Payment Gateways)
+
+### 7.1 Objective & Policy
+FINAGENT operates under a **100% Free & Open Institutional Tier** paradigm. All payment gateways, checkout redirects, billing webhooks, and subscription paywalls (formerly Razorpay, Stripe, and third-party billing rails) have been completely removed from the platform runtime and dependencies.
+
+### 7.2 Architectural Guarantees
+1. **Zero Paywall Latency:** Institutional research, 10-Agent DAG synthesis, DCF financial models, and real-time streaming tickers execute without paywall interruption or subscription gate checks.
+2. **Simplified Dependency Footprint:** Elimination of bloated payment SDKs (`stripe`, `razorpay`) and redundant webhook handlers, minimizing attack surface and cold-start latency.
+3. **Pure Session Identity:** Authentication is handled strictly via encrypted email OTP, single-click instant session tokens, or secure passwords (`AuthModal`), granting instant full-access capabilities to every authenticated analyst.
+4. **Data Sovereignty:** No credit card, billing address, or payment credentials are collected, stored, or processed by the system.
+
+---
+
+## Layer 8: Dynamic Stock & ETF Surveillance Watchlist Architecture
+
+### 8.1 Universal Asset Coverage (Equities & ETFs)
+The surveillance bus monitors the continuous state of the user's customized asset watchlist with zero restrictions:
+- **Instantaneous Add Capability:** Analysts can add any equity among all 2,580+ NSE/BSE listed companies, 6-digit BSE scrips, and all Exchange Traded Funds (Index BeES, Gold BeES, Silver BeES, Sectoral, Thematic, and Global ETFs) via:
+  1. Primary `+ Add Stock or ETF` modal with sub-millisecond search catalog.
+  2. Inline quick-add ticker command input directly in the table header bar.
+  3. One-click `★ Watchlist` toggle from the Stock Research Cockpit.
+  4. One-click `Star` toggle button from the All Equities & ETFs Master Directory (`IndianStocksDirectoryView`).
+- **Selective Deletion & Removal:** Dedicated removal actions in every table row (`Trash2` trigger with `stopPropagation`) allowing analysts to prune or restructure surveillance portfolios with instant toast undo notifications.
+- **Categorical Partitioning:** Real-time filter pills to slice watchlist records into **All Assets**, **Stocks Only**, **ETFs Only**, and **Shifts Detected**.
+- **State Persistence:** Automatic serialization to `localStorage` key `finagent_watchlist`, ensuring full persistence across session restarts with benchmark reset fail-safes.
+
+---
+
+## Layer 9: Calibri Typography Hierarchy & Optical Color Grades
+
+### 9.1 Native & Web Calibri Font Stack
+The entire user interface enforces strict Microsoft Calibri typography with metric-matched Carlito web font fallback:
+```css
+font-family: "Calibri", "Carlito", Candara, "Segoe UI", Arial, sans-serif !important;
+```
+Enforced universally across all document nodes, input elements, chart labels, data tables, and modal dialogs.
+
+### 9.2 Optical Weight Grades & Chromatic Hierarchy
+- **Grade Light (300):** Ambient metadata and secondary timestamps (`font-weight: 300`, letter-spacing `+0.015em`).
+- **Grade Regular (400):** General body prose, descriptions, and disclosure footnotes (`font-weight: 400`).
+- **Grade Medium (500):** Tabular column headers, currency indicators, and card subtitles (`font-weight: 500`).
+- **Grade Semibold (600):** Stock ticker symbols, quantitative KPIs, and button labels (`font-weight: 600`).
+- **Grade Bold (700):** Hero prices, overall scores, and modal headers (`font-weight: 700`).
+- **Grade Black (900):** Large valuation metrics and primary executive titles (`font-weight: 900`).
+
+### 9.3 Financial Color Grades
+- **Bullish Emerald Grade (`#34d399`):** Positive price ticks, undervalued DCF valuations, and score >= 75 with glow aura.
+- **Bearish Rose Grade (`#fb7185`):** Negative price ticks, overvalued DCF alerts, and score < 60 with glow aura.
+- **ETF Gold & Amber Grade (`#fbbf24`):** Dedicated identifier badges for Exchange Traded Funds (Index, Gold, Silver).
+- **Surveillance Cyan Grade (`#22d3ee`):** Live telemetry heartbeat, active agent streams, and primary actions.
+
+---
+
 ## 📸 Executive Visual Showcase
 
 ### Figure 1: Stock Research Cockpit

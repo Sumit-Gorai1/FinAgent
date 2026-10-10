@@ -33,6 +33,7 @@ import {
   Filter,
   CornerDownLeft,
   LayoutGrid,
+  Star,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -47,7 +48,7 @@ import {
   Legend,
   ReferenceLine,
 } from 'recharts';
-import { StockResearchData, PriceAlert } from '../types';
+import { StockResearchData, PriceAlert, WatchlistItem } from '../types';
 import { PriceAlertModal } from './PriceAlertModal';
 import { AIResearchAssistant } from './AIResearchAssistant';
 import { DynamicOrderDepth } from './DynamicOrderDepth';
@@ -73,6 +74,9 @@ interface StockResearchViewProps {
   onAddAlert: (newAlert: Omit<PriceAlert, 'id' | 'createdAt' | 'status'>) => void;
   onDeleteAlert: (alertId: string) => void;
   onTriggerSimulatedAlert: (alert: PriceAlert) => void;
+  watchlist?: WatchlistItem[];
+  onAddToWatchlist?: (item: WatchlistItem) => void;
+  onRemoveFromWatchlist?: (symbol: string) => void;
 }
 
 export const StockResearchView: React.FC<StockResearchViewProps> = ({
@@ -87,6 +91,9 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
   onAddAlert,
   onDeleteAlert,
   onTriggerSimulatedAlert,
+  watchlist = [],
+  onAddToWatchlist,
+  onRemoveFromWatchlist,
 }) => {
   const [macroSubView, setMacroSubView] = React.useState<'chain' | 'heatmap'>('chain');
   const [activeTab, setActiveTab] = React.useState<
@@ -357,6 +364,68 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Watchlist Toggle Button */}
+            {onAddToWatchlist && onRemoveFromWatchlist && (
+              <button
+                id="header-watchlist-btn"
+                onClick={() => {
+                  const isIn = watchlist.some((w) => w.symbol.toUpperCase() === stock.symbol.toUpperCase());
+                  if (isIn) {
+                    onRemoveFromWatchlist(stock.symbol);
+                  } else {
+                    const isEtf =
+                      (stock.sector && (stock.sector.toLowerCase().includes('etf') || stock.sector.toLowerCase().includes('exchange traded fund'))) ||
+                      stock.symbol.includes('BEES') ||
+                      stock.symbol.includes('ETF');
+                    onAddToWatchlist({
+                      symbol: stock.symbol,
+                      name: stock.name,
+                      price: stock.price,
+                      changePercent: stock.changePercent,
+                      score: stock.committee.overallScore,
+                      committeeScore: stock.committee.overallScore,
+                      currency: stock.currency || '₹',
+                      statusTag: stock.committee.status.includes('POSITIVE')
+                        ? 'POSITIVE'
+                        : stock.committee.status.includes('NEUTRAL')
+                        ? 'NEUTRAL'
+                        : 'CAUTION',
+                      thesisStatus: stock.committee.verdict || (isEtf ? 'BUY (INDEX ACCUMULATE)' : 'BUY / MONITOR'),
+                      thesisChanged: Boolean(stock.thesisChanged),
+                      lastAnalyzed: 'Just now',
+                      sector: stock.sector,
+                      isEtf: Boolean(isEtf),
+                      intrinsicValue: stock.intrinsicValue?.blendedIntrinsicValue,
+                      marginOfSafetyPercent: stock.intrinsicValue?.marginOfSafetyPercent,
+                    });
+                  }
+                }}
+                className={`px-3.5 py-2.5 rounded-xl border text-xs font-mono font-semibold flex items-center gap-1.5 transition-all shadow-sm ${
+                  watchlist.some((w) => w.symbol.toUpperCase() === stock.symbol.toUpperCase())
+                    ? 'bg-amber-950/50 hover:bg-amber-900/60 text-amber-300 border-amber-700/80'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:border-amber-500/60'
+                }`}
+                title={
+                  watchlist.some((w) => w.symbol.toUpperCase() === stock.symbol.toUpperCase())
+                    ? 'Remove from Watchlist'
+                    : 'Add to Watchlist'
+                }
+              >
+                <Star
+                  className={`w-4 h-4 ${
+                    watchlist.some((w) => w.symbol.toUpperCase() === stock.symbol.toUpperCase())
+                      ? 'fill-amber-400 text-amber-400'
+                      : 'text-slate-400'
+                  }`}
+                />
+                <span>
+                  {watchlist.some((w) => w.symbol.toUpperCase() === stock.symbol.toUpperCase())
+                    ? 'In Watchlist'
+                    : '+ Watchlist'}
+                </span>
+              </button>
+            )}
+
             {/* Search Stock Button - focuses primary search bar in Header */}
             <button
               id="header-cockpit-search-btn"

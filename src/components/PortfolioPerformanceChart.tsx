@@ -306,6 +306,7 @@ export const PortfolioPerformanceChart: React.FC<PortfolioPerformanceChartProps>
                 borderColor: '#1e293b',
                 borderRadius: '12px',
                 fontSize: '11px',
+                fontFamily: "'Calibri', 'Carlito', Candara, 'Segoe UI', Arial, sans-serif",
                 boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
               }}
             />

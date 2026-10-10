@@ -15,7 +15,7 @@
 
 Rather than relying on generic black-box predictions, FINAGENT deploys an **Orchestrated Multi-Agent AI Architecture** comprising over 10 specialized independent analytical agents. These agents conduct parallel fundamental audits, rigorous technical analysis, macro-economic transmission modeling, strictly fresh current market news extraction, and adversarial bull-versus-bear stress testing before synthesizing findings into an institutional Investment Committee Scorecard.
 
-FINAGENT combines real-time streaming market data, 6-digit BSE scrip resolution, Level-2 depth monitoring, autonomous portfolio rebalancing, a simulated paper trading lab, real-time price threshold alerts with sound notifications, and multi-rail Indian payment gateway integration (Razorpay, UPI, Stripe).
+FINAGENT combines real-time streaming market data, 6-digit BSE scrip resolution, Level-2 depth monitoring, autonomous portfolio rebalancing, a simulated paper trading lab, real-time price threshold alerts with sound notifications, 60+ Exchange Traded Funds (ETFs) with live pricing and dynamic outlay calculations, and 100% paywall-free institutional access (zero payment gateways or checkout friction).
 
 👉 **[View Full Dashboard Snapshots & Visual Architecture Guide (DASHBOARD_SNAPSHOTS.md)](./DASHBOARD_SNAPSHOTS.md)**
 
@@ -145,10 +145,19 @@ FINAGENT mirrors an institutional hedge fund research department. Each agent run
   - **Custom Model**: User-defined allocation weights.
 - Calculates exact trade turnover, net cash requirement, STT/brokerage estimations, and generate institutional execution rationales.
 
-### 6. Continuous Watchlist & Trigger Engine (`WatchlistMonitor`)
-- Real-time monitoring of watchlisted securities.
-- Automated triggers: Volume spikes, RSI extreme overbought/oversold, moving average crosses, and price breakouts.
-- Built-in audio alerts via Web Audio synthesizer chimes.
+### 6. Continuous Watchlist & Trigger Engine (`WatchlistMonitor` & `AddWatchlistStockModal`)
+- **Universal Stock & ETF Management**: Full capability to add or remove **any** stock or Exchange Traded Fund (ETF) across all 2,580+ NSE/BSE listed equities, 6-digit BSE scrips, and all Indian/global ETFs (Index BeES, Gold, Silver, Sectoral, Thematic, US benchmarks).
+- **Multiple Add Modalities**:
+  - `+ Add Stock or ETF` search modal with category tabs, live market price resolver, and quick-add ETF/leader chips.
+  - Inline quick-add command input directly in the Watchlist table header toolbar.
+  - One-click `★ Watchlist` toggle from the Stock Research Cockpit.
+  - One-click `Star` button in the 2,580+ Equities & ETFs Master Directory (`IndianStocksDirectoryView`).
+- **Selective Deletion & Pruning**: Instant row-level `Trash2` remove action with toast undo notifications.
+- **Categorical Partitioning**: Filter tabs for **All Assets**, **Stocks Only**, **ETFs Only**, and **Shifts Detected**.
+- **Guaranteed Local Persistence**: Automatically serializes to `finagent_watchlist` in LocalStorage, preventing accidental data loss on refresh.
+- **Calibri Typography & Financial Color Grades**: Strict Microsoft Calibri typography across the entire interface with optical hierarchy (Light, Regular, Medium, Semibold, Bold, Black) and color grades (`#34d399` Bullish Emerald, `#fb7185` Bearish Rose, `#fbbf24` ETF Gold, `#22d3ee` Surveillance Cyan).
+- **Automated Triggers**: Volume spikes, RSI extreme overbought/oversold, moving average crosses, and price breakouts.
+- **Audible Alerts**: Built-in sound notifications via Web Audio synthesizer chimes.
 
 ### 7. Paper Trading Lab & Simulation (`PaperTradingLab`)
 - Virtual trading engine seeded with **₹10,00,000 Virtual INR**.
@@ -227,9 +236,9 @@ The application runs a unified full-stack architecture powered by Express and Vi
 | **Backend Server** | Node.js, Express 4, TypeScript, TSX runtime, Server-Sent Events (SSE) |
 | **AI & LLM Engine** | `@google/genai` TypeScript SDK (Gemini 3.8 Flash, Gemini 3.1 Flash Lite, Gemini Flash Latest with automatic failover) |
 | **Market Data Feeds** | Yahoo Finance Chart API, Google News RSS Wires, NSE/BSE Direct Pipeline Gateway |
-| **Payment Gateways** | Razorpay SDK, Stripe SDK, UPI Collect Protocol |
 | **Export Engines** | jsPDF, jsPDF-AutoTable (PDF Reports), SheetJS XLSX (Excel Spreadsheets) |
 | **Build & Bundling** | Vite 6, esbuild |
+| **Access Model** | 100% Free & Open Institutional Tier (Zero Payment Gateways, No Subscriptions) |
 
 ---
 
@@ -257,12 +266,6 @@ NODE_ENV=development
 
 # Google Gemini API Key for multi-agent synthesis and AI Copilot
 GEMINI_API_KEY=your_gemini_api_key_here
-
-# Payment Gateway Keys (Optional for live payments; sandbox works out of the box)
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
 ```
 
 ### Running Locally

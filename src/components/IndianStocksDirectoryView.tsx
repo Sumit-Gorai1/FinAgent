@@ -17,6 +17,7 @@ import {
   Activity,
   CheckCircle2,
   RefreshCw,
+  Star,
 } from 'lucide-react';
 import {
   INDIAN_STOCKS_MASTER,
@@ -28,11 +29,15 @@ import { EducationalDisclaimer } from './EducationalDisclaimer';
 interface IndianStocksDirectoryViewProps {
   onSelectStock: (symbol: string) => void;
   currentSymbol?: string;
+  watchlistSymbols?: Set<string>;
+  onToggleWatchlist?: (stock: StockSearchItem) => void;
 }
 
 export const IndianStocksDirectoryView: React.FC<IndianStocksDirectoryViewProps> = ({
   onSelectStock,
   currentSymbol,
+  watchlistSymbols,
+  onToggleWatchlist,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSector, setSelectedSector] = useState<string>('ALL');
@@ -516,16 +521,35 @@ export const IndianStocksDirectoryView: React.FC<IndianStocksDirectoryViewProps>
 
                   {/* Stock Meta details & Action */}
                   <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1.5 border-t border-slate-800/50">
-                    <span className="font-mono text-slate-500 truncate max-w-[190px]">
+                    <span className="font-mono text-slate-500 truncate max-w-[150px]">
                       Series: <strong className="text-slate-300">{stock.series || 'EQ'}</strong>{stock.bseCode ? ` · Scrip: ${stock.bseCode}` : ''}
                     </span>
-                    <button
-                      type="button"
-                      className="px-2.5 py-1 bg-slate-800 group-hover:bg-cyan-600 text-slate-300 group-hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-all shadow-sm shrink-0"
-                    >
-                      <span>Analyze</span>
-                      <ArrowUpRight className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {onToggleWatchlist && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleWatchlist(stock);
+                          }}
+                          title={watchlistSymbols?.has(stock.symbol) ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                          className={`p-1.5 rounded-lg border transition-all ${
+                            watchlistSymbols?.has(stock.symbol)
+                              ? 'bg-amber-950/70 text-amber-400 border-amber-800/90 shadow-xs'
+                              : 'bg-slate-800/90 text-slate-400 hover:text-amber-400 border-slate-700/80 hover:border-amber-500/50'
+                          }`}
+                        >
+                          <Star className={`w-3.5 h-3.5 ${watchlistSymbols?.has(stock.symbol) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="px-2.5 py-1 bg-slate-800 group-hover:bg-cyan-600 text-slate-300 group-hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-all shadow-sm shrink-0"
+                      >
+                        <span>Analyze</span>
+                        <ArrowUpRight className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -618,13 +642,32 @@ export const IndianStocksDirectoryView: React.FC<IndianStocksDirectoryViewProps>
                       {stock.isin || '—'}
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <button
-                        type="button"
-                        className="px-3 py-1 bg-cyan-950 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-800 hover:border-cyan-600 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1"
-                      >
-                        <span>Analyze</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {onToggleWatchlist && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleWatchlist(stock);
+                            }}
+                            title={watchlistSymbols?.has(stock.symbol) ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                            className={`p-1 rounded-lg border transition-all ${
+                              watchlistSymbols?.has(stock.symbol)
+                                ? 'bg-amber-950/70 text-amber-400 border-amber-800/90 shadow-xs'
+                                : 'bg-slate-800/90 text-slate-400 hover:text-amber-400 border-slate-700/80 hover:border-amber-500/50'
+                            }`}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${watchlistSymbols?.has(stock.symbol) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="px-3 py-1 bg-cyan-950 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-800 hover:border-cyan-600 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1"
+                        >
+                          <span>Analyze</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

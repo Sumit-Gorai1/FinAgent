@@ -94,6 +94,13 @@ async function startServer() {
           image: '/assets/sector_heatmap.jpg',
           route: 'sectors',
         },
+        {
+          id: 'all-stocks',
+          title: 'All Equities & ETF Master Directory',
+          description: 'Instantaneous search and filtering across all 2,584 companies and 60+ Exchange Traded Funds (ETFs) with live pricing and dynamic outlay calculation.',
+          image: '/assets/etf_directory_cockpit.jpg',
+          route: 'all-stocks',
+        },
       ],
     });
   });

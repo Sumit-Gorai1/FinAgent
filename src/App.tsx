@@ -9,7 +9,7 @@ import { ComplianceModal } from './components/ComplianceModal';
 import { mockStocksCatalog, defaultWatchlist, defaultPortfolio } from './data/mockStocks';
 import { getOrCreateStockData } from './utils/stockDataHelper';
 import { resolveStockQuery } from './utils/stockSearchResolver';
-import { StockResearchData, WatchlistItem, PortfolioHolding, PaperOrder, TriggerEvent, PriceAlert, PriceAlertNotification, UserProfile, UserSubscription } from './types';
+import { StockResearchData, WatchlistItem, PortfolioHolding, PaperOrder, TriggerEvent, PriceAlert, PriceAlertNotification, UserProfile } from './types';
 import { PriceAlertNotificationBanner } from './components/PriceAlertNotificationBanner';
 import { BugAgentModal } from './components/BugAgentModal';
 import { NseBsePipelineModal } from './components/NseBsePipelineModal';
@@ -46,7 +46,20 @@ export default function App() {
     return initial;
   });
   const [selectedSymbol, setSelectedSymbol] = React.useState<string>('RELIANCE');
-  const [watchlist, setWatchlist] = React.useState<WatchlistItem[]>(defaultWatchlist);
+  const [watchlist, setWatchlist] = React.useState<WatchlistItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('finagent_watchlist');
+      if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse saved watchlist', e);
+    }
+    return defaultWatchlist;
+  });
   const [holdings, setHoldings] = React.useState<PortfolioHolding[]>(() => {
     try {
       const saved = localStorage.getItem('finagent_portfolio_holdings');
@@ -131,6 +144,35 @@ export default function App() {
       setLastSavedTimestamp(nowStr);
       setPortfolioNotice('Portfolio reset to default benchmark and saved.');
       setTimeout(() => setPortfolioNotice(''), 3500);
+    } catch {}
+  };
+
+  // Auto-save watchlist changes to localStorage
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('finagent_watchlist', JSON.stringify(watchlist));
+    } catch (e) {
+      console.warn('Failed to save watchlist to localStorage', e);
+    }
+  }, [watchlist]);
+
+  const handleAddToWatchlist = (item: WatchlistItem) => {
+    setWatchlist((prev) => {
+      if (prev.some((w) => w.symbol.toUpperCase() === item.symbol.toUpperCase())) {
+        return prev;
+      }
+      return [item, ...prev];
+    });
+  };
+
+  const handleRemoveFromWatchlist = (symbol: string) => {
+    setWatchlist((prev) => prev.filter((w) => w.symbol.toUpperCase() !== symbol.toUpperCase()));
+  };
+
+  const handleResetWatchlist = () => {
+    setWatchlist(defaultWatchlist);
+    try {
+      localStorage.setItem('finagent_watchlist', JSON.stringify(defaultWatchlist));
     } catch {}
   };
   const [currentUser, setCurrentUser] = React.useState<UserProfile | null>(() => {
@@ -1294,6 +1336,9 @@ export default function App() {
             onAddAlert={handleAddPriceAlert}
             onDeleteAlert={handleDeletePriceAlert}
             onTriggerSimulatedAlert={handleTriggerSimulatedAlert}
+            watchlist={watchlist}
+            onAddToWatchlist={handleAddToWatchlist}
+            onRemoveFromWatchlist={handleRemoveFromWatchlist}
           />
         )}
 
@@ -1315,6 +1360,35 @@ export default function App() {
               setActiveView('research');
             }}
             currentSymbol={selectedSymbol}
+            watchlistSymbols={new Set(watchlist.map((w) => w.symbol.toUpperCase()))}
+            onToggleWatchlist={(stockItem) => {
+              const inWatchlist = watchlist.some((w) => w.symbol.toUpperCase() === stockItem.symbol.toUpperCase());
+              if (inWatchlist) {
+                handleRemoveFromWatchlist(stockItem.symbol);
+              } else {
+                const isEtf =
+                  (stockItem.sector && (stockItem.sector.toLowerCase().includes('etf') || stockItem.sector.toLowerCase().includes('exchange traded fund'))) ||
+                  stockItem.symbol.includes('BEES') ||
+                  stockItem.symbol.includes('ETF');
+                handleAddToWatchlist({
+                  symbol: stockItem.symbol,
+                  name: stockItem.name,
+                  price: stockItem.price,
+                  changePercent: +(Math.random() * 2 - 0.5).toFixed(2),
+                  score: Math.floor(Math.random() * 20) + 72,
+                  committeeScore: Math.floor(Math.random() * 20) + 72,
+                  currency: stockItem.currency || '₹',
+                  statusTag: 'POSITIVE',
+                  thesisStatus: isEtf ? 'BUY (INDEX ACCUMULATE)' : 'BUY / MONITOR',
+                  thesisChanged: false,
+                  lastAnalyzed: 'Just now',
+                  sector: stockItem.sector,
+                  isEtf: Boolean(isEtf),
+                  intrinsicValue: stockItem.intrinsicValue,
+                  marginOfSafetyPercent: stockItem.marginOfSafetyPercent,
+                });
+              }
+            }}
           />
         )}
 
@@ -1336,6 +1410,9 @@ export default function App() {
             monitoringActive={monitoringActive}
             setMonitoringActive={setMonitoringActive}
             recentAlerts={recentAlerts}
+            onAddStock={handleAddToWatchlist}
+            onRemoveStock={handleRemoveFromWatchlist}
+            onResetWatchlist={handleResetWatchlist}
           />
         )}
 

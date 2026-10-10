@@ -219,28 +219,34 @@ This document provides a comprehensive visual reference, component blueprint, an
 
 ---
 
-### Snapshot 6: Continuous Watchlist & Strategic Trigger Monitor (`WatchlistMonitor.tsx`)
+### Snapshot 6: Continuous Watchlist & Strategic Trigger Monitor (`WatchlistMonitor.tsx` & `AddWatchlistStockModal.tsx`)
 
 #### Wireframe Blueprint:
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ 🔔 CONTINUOUS WATCHLIST & REAL-TIME EVENT STREAM                                                      │
+│ 🔔 CONTINUOUS WATCHLIST & MULTI-AGENT SURVEILLANCE BUS                    [+ Add Stock or ETF to List] │
 │ Autonomous surveillance monitoring price breakouts, volume surges, and RSI extremes.                   │
 ├────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ Active Watchlist Securities (8)                                            Surveillance Status: ACTIVE │
-│ Symbol     CMP        24h Chg    20 SMA     RSI 14   Surveillance Alert Level   Quick Actions          │
+│ Quick Filter: [● All (8)] [📈 Stocks (5)] [🪙 ETFs (3)] [⚠️ Shifts (1)]     [Quick Add Ticker: INFY] [+]│
+├────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Symbol / Asset    Type    CMP        24h Chg    Score  Thesis Status         Actions                   │
 │ ────────────────────────────────────────────────────────────────────────────────────────────────────── │
-│ RELIANCE   ₹1,257.50  +1.45% ▲   ₹1,248.50  62.4     ● Normal Trading Band      [Set Alert] [Chart]    │
-│ INFY       ₹1,885.00  -0.68% ▼   ₹1,892.00  38.2     ⚠️ Approaching Oversold    [Set Alert] [Chart]    │
-│ TATAMOTORS ₹1,048.50  +3.20% ▲   ₹1,012.00  74.5     🚨 RSI Overbought (>70)    [Set Alert] [Chart]    │
+│ RELIANCE          EQUITY  ₹1,268.50  +0.17% ▲   78     ● BUY / ACCUMULATE    [View ➔]  [🗑️ Remove]      │
+│ TCS               EQUITY  ₹4,124.80  +0.40% ▲   66     ⚠️ Shift Detected     [View ➔]  [🗑️ Remove]      │
+│ NIFTYBEES         ETF     ₹253.76    +0.45% ▲   84     ● STRONG BUY (INDEX)  [View ➔]  [🗑️ Remove]      │
+│ GOLDBEES          ETF     ₹74.20     +0.68% ▲   82     ● BUY (SAFE HAVEN)    [View ➔]  [🗑️ Remove]      │
+│ TATAMOTORS        EQUITY  ₹984.75    +0.85% ▲   82     ● BUY / MOMENTUM      [View ➔]  [🗑️ Remove]      │
+│ HDFCBANK          EQUITY  ₹1,668.40  +0.62% ▲   76     ● ACCUMULATE          [View ➔]  [🗑️ Remove]      │
 ├────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ RECENT SURVEILLANCE TRIGGERS (AUDIO CHIME ENABLED 🔔)                                                  │
-│ • 14:15 IST — TATAMOTORS: 5-minute volume surged 280% above baseline. Potential institutional block.  │
-│ • 13:40 IST — HDFCBANK: Crossed above 20-day SMA (₹965.00). Bullish momentum confirmation.           │
+│ • 14:15 IST — TCS: Breached 50-day SMA at ₹4,180. Triggers Technical & Risk Agent review.              │
+│ • 13:40 IST — RELIANCE: Positive Clean Energy PLI expansion catalyst verified by Sector Agent.         │
 └────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 #### Key Capabilities & Elements:
+- **Universal Stock & ETF Tracking**: Add or remove any security across all 2,580+ NSE/BSE equities and full ETF catalog.
+- **Dynamic Add & Remove Actions**: Modal picker with category tabs, inline quick add, and single-click row deletion with toast undo.
 - **Automated Event Detection**: Triggers on volume anomalies, moving average crosses, and overbought/oversold levels.
 - **Web Audio Chimes**: Synthesizes audible alert tones upon triggering without external audio file dependencies.
 
@@ -286,7 +292,7 @@ This document provides a comprehensive visual reference, component blueprint, an
 │ [✓] Live Market Feed: Connected to Yahoo Finance & NSE/BSE Gateway (Latency: 142ms)                    │
 │ [✓] 2,584 Equities Master File: Schema valid, ISINs indexed, BSE Scrip codes resolved                 │
 │ [✓] Fresh News Wire: Filtering strictly for < 24h market releases (1-day news rejected)                │
-│ [✓] Billing Rails: Razorpay, UPI, and Stripe configurations loaded                                     │
+│ [✓] Institutional Access: 100% Free & Open Pipeline (Zero payment gateways or paywalls)               │
 │ [✓] AI Engine: Gemini API active with automatic candidate model failover                               │
 ├────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ [🔄 Run Full Diagnostic Scan]                                    [⚡ Execute Autonomous Auto-Fix All]  │
@@ -305,7 +311,8 @@ This document provides a comprehensive visual reference, component blueprint, an
 | **Positive / Bullish** | `text-emerald-400` / `bg-emerald-950/60` `border-emerald-800` |
 | **Negative / Bearish** | `text-rose-400` / `bg-rose-950/60` `border-rose-800` |
 | **Neutral / Warning** | `text-amber-400` / `bg-amber-950/60` `border-amber-800` |
-| **Typography** | Sans: Inter / System UI; Numeric & Tickers: Monospace (`font-mono`) |
+| **ETF Gold Grade** | `text-grade-gold` (`#fbbf24`) / `badge-grade-amber` (Exchange Traded Funds) |
+| **Typography** | Strict Microsoft Calibri / Carlito with full optical hierarchy (Light 300, Regular 400, Medium 500, Semibold 600, Bold 700, Black 900) |
 | **Responsive Breakpoints** | Full adaptive support across Mobile (`sm`), Tablet (`md`), and Desktop Cockpit (`lg`, `xl`) |
 
 ---
