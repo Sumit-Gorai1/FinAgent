@@ -24,6 +24,12 @@ This document provides a comprehensive visual reference, component blueprint, an
 
 ---
 
+### 4. Exchange Traded Funds (ETFs) & All Equities Master Directory
+![FINAGENT ETF Directory & Add Stock Modal](./public/assets/etf_directory_cockpit.jpg)
+*Comprehensive catalog of Indian and Global ETFs (NIFTYBEES, BANKBEES, GOLDBEES, SILVERBEES, CPSEETF, MON100, SPY) with live quotes, 1-click filter categories, and instant outlay calculation ($Total = Shares \times Price$).*
+
+---
+
 ## 🖥️ Screen-by-Screen Snapshot Specifications
 
 ```

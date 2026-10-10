@@ -253,6 +253,64 @@ The Output Layer provides runtime execution entry points, user-triggered workflo
 
 ---
 
+## Layer 6: Real-Time ETF Engine, Dynamic Outlay & Persistent State Layer
+
+### 6.1 Objective & Scope
+The ETF & Portfolio State Engine extends FINAGENT's data architecture to support continuous streaming market pricing across Indian and Global Exchange Traded Funds (ETFs), dynamic position outlay calculations at transaction time, and resilient client-side persistent storage.
+
+### 6.2 File Boundaries & Artifacts
+
+| Component | Path / File | Primary Technology | Key Responsibility |
+| :--- | :--- | :--- | :--- |
+| **Live Market Engine** | `server/liveMarketService.ts` | Node.js / Express / TypeScript | High-performance sub-250ms quote dispatcher with Stale-While-Revalidate hot-cache. |
+| **Stock & ETF Resolver** | `src/utils/stockSearchResolver.ts` | TypeScript / In-Memory Trie | Instantaneous sub-millisecond search across 2,570+ equities and 60+ Indian/Global ETFs. |
+| **Stock Addition Modal** | `src/components/AddStockModal.tsx` | React 19 / TypeScript / Lucide | Unrestricted amount entry, live CMP locking, and instant outlay calculation ($\text{Shares} \times \text{Price}$). |
+| **Portfolio Intelligence** | `src/components/PortfolioIntelligence.tsx` | React 19 / Recharts / Tailwind v4 | Real-time portfolio P&L tracking, ETF exposure, Monte Carlo VaR, and manual save triggers. |
+| **State Persistence Store** | `src/App.tsx` | Browser LocalStorage / React State | Fail-safe serialization of multi-asset holdings (`finagent_portfolio_holdings`) with timestamp auditing. |
+
+### 6.3 Technical Specifications & Mathematical Models
+
+#### 1. Real-Time ETF Universe Integration
+- **Index & Benchmark ETFs:** NIFTYBEES, BANKBEES, JUNIORBEES, MID150BEES, SENSEXBEES, HDFCNIFTY, SETFNIF50, ICICINIFTY, KOTAKNIFTY, SETFNN50, HDFCSENSEX.
+- **Precious Metals (Commodity) ETFs:** GOLDBEES, SILVERBEES, HDFCGOLD, ICICIGOLD, SBIETFGOLD, AXISGOLD, KOTAKGOLD, TATAGOLD, UTIGOLDETF, HDFCSILVER, ICICISILVE, KOTAKSILVER, SBISILVER, AXISSILVER, TATASILV.
+- **Sectoral, Thematic & Smart Beta ETFs:** ITBEES, AUTOBEES, PHARMABEES, PSUBNKBEES, CPSEETF, BHARAT22, ICICIB22, FMCGIETF, INFRAIETF, INFRABEES, COMMOIETF, COMMOBEES, CONSUMIETF, KOTAKPSUBK, KOTAKIT, HDFCIT, ICICIIT, AXISTECH, ICICIAUTO, ICICIPHARM, DIVOPPBEES, SHARIABEES, HANGSENGBEES, MOM30IETF, ALPHAETF, KOTAKALPHA, NV20IETF, KOTAKNV20, LIQUIDBEES, LIQUIDCASE, SETF10GILT.
+- **Global & US Benchmarks:** SPY, QQQ, VOO, VTI, DIA, IWM, GLD, SLV, TLT, MON100, MAFANG, MASPTOP50, SMH, SOXX, VT, ARKK, INDA, EEM, VNQ.
+
+#### 2. Dynamic Transaction Outlay Engine
+At the exact timestamp of stock/ETF addition:
+$$\text{Calculated Investment Outlay (INR)} = \text{Quantity (Shares)} \times \text{Live Fetched CMP}$$
+$$\text{Shares Allocation} = \max\left(1, \left\lfloor \frac{\text{Budget Amount}}{\text{Live Fetched CMP}} + 0.5 \right\rfloor\right)$$
+- If the user modifies the budget amount, the required share count recalculates dynamically against the locked CMP.
+- If the user modifies quantity, total cash outlay updates instantaneously without browser step validation errors.
+
+#### 3. Persistent Portfolio State Serialization
+- **Primary Cache Key:** `finagent_portfolio_holdings`
+- **Secondary Sync Key:** `finagent_portfolio_saved_time`
+- **Cash Ledger Key:** `finagent_cash_balance`
+- **Integrity Rule:** Guaranteed zero-loss state retention across browser reloads, preserving customized allocations and zero-holding states without defaulting back to seed data.
+
+---
+
+## 📸 Executive Visual Showcase
+
+### Figure 1: Stock Research Cockpit
+![FINAGENT Stock Research Cockpit](./public/assets/research_cockpit.jpg)
+*Real-time multi-agent research terminal featuring live tick price feeds, 10-agent consensus scorecard, interactive candlestick charting, moving average bands, and level-2 depth.*
+
+### Figure 2: Institutional Portfolio Intelligence & Heartbeat Monitor
+![FINAGENT Portfolio Intelligence](./public/assets/portfolio_cockpit.jpg)
+*Asset allocation metrics, P&L tracking, sector risk exposure distribution, portfolio health monitoring, and persistent storage synchronization.*
+
+### Figure 3: Industry Sector Performance Heatmap
+![FINAGENT Sector Heatmap](./public/assets/sector_heatmap.jpg)
+*Real-time sector performance tree-map visualizer grouping equities and ETFs into canonical Indian industries with live capital flow indicators.*
+
+### Figure 4: Complete ETF & Equities Directory Workstation
+![FINAGENT ETF Directory & Outlay Calculator](./public/assets/etf_directory_cockpit.jpg)
+*Searchable catalog of Indian and Global ETFs with real-time green tick prices, 1-click filter categories, and instant outlay calculation ($Total = Shares \times Price$).*
+
+---
+
 ## Verification & Operational Guidelines
 
 1. **Decoupled Execution:** Any layer can be independently tested and executed. Layer 1 can run autonomously as an ingest daemon, Layer 3 can run unit test suites via `pytest tests/`, and Layer 5 can run batch report compilation without active browser sessions.

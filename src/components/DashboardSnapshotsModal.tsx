@@ -65,12 +65,12 @@ const SNAPSHOTS: SnapshotItem[] = [
     icon: <PieChart className="w-4 h-4 text-emerald-400" />,
     image: '/assets/portfolio_cockpit.jpg',
     description:
-      'Institutional portfolio management cockpit tracking live multi-asset valuations, position weights, unrealized gains, sector risk exposures, Monte Carlo Value-at-Risk (VaR), and one-click export to branded PDF & Excel spreadsheets.',
+      'Institutional portfolio management cockpit tracking live multi-asset valuations, position weights, real-time unrealized gains, sector risk exposures, automated ETF integration, persistent local storage auto-saving, and one-click export to branded PDF & Excel spreadsheets.',
     highlights: [
       'Real-time position P&L tracking benchmarked to live NSE/BSE tick feeds',
-      'Asset allocation and industry sector concentration donut charts',
-      'Integrated Position Action Modal for instant Buy More, Trim, and Edit operations',
-      'Monte Carlo 95% Confidence VaR simulation and downside capital hurdles',
+      'Integrated ETF positions (NIFTYBEES, GOLDBEES, SILVERBEES, CPSEETF, SPY) with live price updates',
+      'Persistent local storage auto-saving with live timestamp and explicit manual save button',
+      'Accurate investment outlay calculations: Shares × Price automatically resolved',
       'One-click export to executive PDF Investment Reports (jsPDF) and Excel (XLSX)',
     ],
     viewTarget: 'portfolio',
@@ -83,28 +83,29 @@ const SNAPSHOTS: SnapshotItem[] = [
     icon: <LayoutGrid className="w-4 h-4 text-cyan-400" />,
     image: '/assets/sector_heatmap.jpg',
     description:
-      'Hierarchical performance tree-map grouping all equities into canonical Indian industrial sectors (Banking & Financials, IT, Energy & Power, Automotive & EV, Pharma, FMCG, Metals, Infrastructure, Defence) with live capital flow indicators.',
+      'Hierarchical performance tree-map grouping all equities into canonical Indian industrial sectors (Banking & Financials, IT, Energy & Power, Automotive & EV, Pharma, FMCG, Metals, Infrastructure, Defence) and Exchange Traded Funds (ETFs) with live capital flow indicators.',
     highlights: [
       'Color-coded performance gradients (Emerald for strong gains, Rose for pullbacks)',
       'Live market breadth counters: Advances, Declines, and Unchanged ratios',
+      'Integrated Exchange Traded Funds (ETF) tracking with real-time percentage changes',
       'Interactive stock tiles with instantaneous drill-down into 10-agent research',
-      'Dual placement: Dedicated full-screen view and embedded in Research cockpit',
     ],
     viewTarget: 'sectors',
   },
   {
     id: 'all-stocks',
-    title: 'All 2,570+ Listed Companies Master Directory',
+    title: 'All 2,570+ Equities & Complete ETF Master Directory',
     badge: 'Universe Coverage',
     category: 'Exchange Directory',
     icon: <Building2 className="w-4 h-4 text-emerald-400" />,
+    image: '/assets/etf_directory_cockpit.jpg',
     description:
-      'Instantaneous search and filtering across all 2,584 companies listed on the National Stock Exchange of India (NSE) and Bombay Stock Exchange (BSE), featuring verified 6-digit BSE scrip codes (e.g. 500325, 532540) and ISIN lookup.',
+      'Instantaneous search and filtering across all 2,584 companies and Exchange Traded Funds (ETFs) listed on the National Stock Exchange of India (NSE) and Bombay Stock Exchange (BSE), featuring verified 6-digit BSE scrip codes, ISIN lookup, and fast 1-click ETF filter categories.',
     highlights: [
       'Comprehensive master universe indexed with official legal names, sectors, and ISINs',
-      'Dual-listing badge identification (NSE & BSE Dual vs. BSE Exclusive)',
-      'Live batch price polling across active pagination rows',
-      'Sub-millisecond client-side filtering by sector, exchange, and market cap',
+      'Full ETF integration: Index BeES, Gold, Silver, Sectoral, Thematic, and US/Global ETFs',
+      'Live sub-250ms batch price polling across active pagination rows',
+      'Instant outlay calculator and Add Stock integration directly from search results',
     ],
     viewTarget: 'all-stocks',
   },
@@ -298,6 +299,7 @@ export const DashboardSnapshotsModal: React.FC<DashboardSnapshotsModalProps> = (
                   <img
                     src={currentSnapshot.image}
                     alt={currentSnapshot.title}
+                    referrerPolicy="no-referrer"
                     onError={() => handleImageError(currentSnapshot.id)}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.01]"
                   />

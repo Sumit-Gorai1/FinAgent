@@ -21,6 +21,20 @@ FINAGENT combines real-time streaming market data, 6-digit BSE scrip resolution,
 
 ---
 
+## 📸 Executive Visual Showcase
+
+| Stock Research Cockpit | Institutional Portfolio Intelligence |
+|:---:|:---:|
+| ![FINAGENT Research Cockpit](./public/assets/research_cockpit.jpg) | ![FINAGENT Portfolio Intelligence](./public/assets/portfolio_cockpit.jpg) |
+| *Multi-agent consensus scorecard, candlestick charts & depth* | *Multi-asset allocation, live P&L & persistent state* |
+
+| Industry Sector Heatmap | All Equities & ETFs Directory |
+|:---:|:---:|
+| ![FINAGENT Sector Heatmap](./public/assets/sector_heatmap.jpg) | ![FINAGENT ETF Directory](./public/assets/etf_directory_cockpit.jpg) |
+| *Real-time sector tree-map & ETF capital flows* | *60+ Indian & Global ETFs with instant outlay calculator* |
+
+---
+
 ## 🏛️ Multi-Agent Architecture
 
 FINAGENT mirrors an institutional hedge fund research department. Each agent runs independently, citations and mathematical proofs are strictly segregated from qualitative reasoning, and an adversarial debate chamber tests the thesis prior to committee consensus:
@@ -114,6 +128,9 @@ FINAGENT mirrors an institutional hedge fund research department. Each agent run
 ### 4. Portfolio Intelligence Cockpit (`PortfolioIntelligence`)
 - Real-time portfolio tracking: Total Portfolio Value, Day's P&L, Overall Unrealized Gain/Loss, and Cash Balance.
 - Interactive multi-asset allocation and sector exposure charts.
+- **Complete ETF Integration**: Native tracking of 60+ Exchange Traded Funds across Index, Commodities (Gold/Silver), Thematic, Smart Beta, and US/Global benchmarks with live quote feeds.
+- **Accurate Outlay & Real-Time Calculation**: When adding stocks or ETFs, exact total outlay ($\text{Amount} = \text{Shares} \times \text{Live Price}$) is computed dynamically with zero validation step errors.
+- **Guaranteed Persistent Portfolio Storage**: Every position addition, edit, trim, or deletion automatically persists to client-side storage (`finagent_portfolio_holdings`), backed by live timestamp indicators and an explicit manual "Save Portfolio" button.
 - Portfolio Risk Matrix, Monte Carlo stress simulation, and VaR (Value at Risk) bounds.
 - Portfolio Heartbeat Monitor with automated health scoring.
 - Position Action Modal for quick Buy, Trim, Edit, and Delete operations.
