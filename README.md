@@ -17,7 +17,9 @@ Rather than relying on generic black-box predictions, FINAGENT deploys an **Orch
 
 FINAGENT combines real-time streaming market data, 6-digit BSE scrip resolution, Level-2 depth monitoring, autonomous portfolio rebalancing, a simulated paper trading lab, real-time price threshold alerts with sound notifications, 60+ Exchange Traded Funds (ETFs) with live pricing and dynamic outlay calculations, and 100% paywall-free institutional access (zero payment gateways or checkout friction).
 
-👉 **[View Full Dashboard Snapshots & Visual Architecture Guide (DASHBOARD_SNAPSHOTS.md)](./DASHBOARD_SNAPSHOTS.md)**
+👉 **[View Official Sources & Data Pipeline Registry (SOURCES.md)](./SOURCES.md)**  
+👉 **[View Full Dashboard Snapshots & Visual Architecture Guide (DASHBOARD_SNAPSHOTS.md)](./DASHBOARD_SNAPSHOTS.md)**  
+👉 **[View Pipeline Architecture & Layer Specification Report (REPORT.md)](./REPORT.md)**
 
 ---
 

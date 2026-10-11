@@ -1,4 +1,5 @@
 import express from 'express';
+import http from 'http';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
@@ -35,7 +36,13 @@ dotenv.config();
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const server = http.createServer(app);
+
+  const args = process.argv.slice(2);
+  const portIndex = args.indexOf('--port');
+  const portArg = portIndex !== -1 ? args[portIndex + 1] : undefined;
+  // Dev server must listen on port 3000 in AI Studio
+  const PORT = parseInt(portArg || '3000', 10);
 
   // Permissive CORS and Frame Embedding Headers (allow opening in shared links, iframes, webviews, other apps)
   app.use((req, res, next) => {
@@ -170,8 +177,8 @@ async function startServer() {
     return null;
   }
 
-  // Health endpoint
-  app.get('/api/health', (req, res) => {
+  // Health endpoints
+  app.get(['/health', '/api/health'], (req, res) => {
     res.json({
       status: 'ok',
       service: 'FINAGENT Autonomous Multi-Agent Engine',
@@ -1209,7 +1216,10 @@ Return strictly valid JSON with this exact schema:
   // Vite development middleware or static production serving
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR === 'true' ? false : { server },
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -1228,7 +1238,11 @@ Return strictly valid JSON with this exact schema:
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  server.on('error', (err: any) => {
+    console.error('Server error:', err);
+  });
+
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`FINAGENT server active on http://0.0.0.0:${PORT}`);
   });
 }

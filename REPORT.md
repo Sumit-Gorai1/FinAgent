@@ -3,7 +3,9 @@
 > **Document Type:** System Architecture & Data Pipeline Technical Report  
 > **Classification:** Internal Engineering & Quantitative Architecture Specification  
 > **Status:** Active / Production Reference  
-> **Dashboard Integration:** None (Standalone file report per operational directive)
+> **Official Sources Registry:** See [SOURCES.md](./SOURCES.md) for full exchange feed endpoints, 60+ ETF trackers, valuation formulas, and local storage contracts.  
+> **Visual Architecture Showcase:** See [DASHBOARD_SNAPSHOTS.md](./DASHBOARD_SNAPSHOTS.md)  
+> **Platform Overview:** See [README.md](./README.md)
 
 ---
 

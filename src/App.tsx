@@ -19,6 +19,7 @@ import { IndianExchangeStocksModal } from './components/IndianExchangeStocksModa
 import { IndianStocksDirectoryView } from './components/IndianStocksDirectoryView';
 import { SectorHeatmap } from './components/SectorHeatmap';
 import { DashboardSnapshotsModal } from './components/DashboardSnapshotsModal';
+import { SourcesModal } from './components/SourcesModal';
 import { DynamicBackgroundVideo } from './components/DynamicBackgroundVideo';
 import { playAlertChime } from './utils/soundAlert';
 
@@ -100,6 +101,7 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = React.useState<boolean>(false);
   const [showIndianStocksModal, setShowIndianStocksModal] = React.useState<boolean>(false);
   const [showSnapshotsModal, setShowSnapshotsModal] = React.useState<boolean>(false);
+  const [showSourcesModal, setShowSourcesModal] = React.useState<boolean>(false);
 
   // Auto-save portfolio holdings and cash balance changes to localStorage
   React.useEffect(() => {
@@ -1297,6 +1299,7 @@ export default function App() {
         onOpenPipeline={() => setShowPipelineModal(true)}
         onOpenIndianStocksModal={() => setShowIndianStocksModal(true)}
         onOpenSnapshots={() => setShowSnapshotsModal(true)}
+        onOpenSources={() => setShowSourcesModal(true)}
         user={currentUser}
         onOpenLogin={() => setShowAuthModal(true)}
         onLogout={handleLogout}
@@ -1521,6 +1524,12 @@ export default function App() {
         }}
       />
 
+      {/* Official Data & Model Sources Registry Modal */}
+      <SourcesModal
+        isOpen={showSourcesModal}
+        onClose={() => setShowSourcesModal(false)}
+      />
+
       {/* Real-time Price Alert Notification Toast Stack */}
       <PriceAlertNotificationBanner
         notifications={alertNotifications}
@@ -1555,6 +1564,13 @@ export default function App() {
           <span>Stock Research & Portfolio Intelligence</span>
         </div>
         <div className="flex items-center gap-4 text-[11px]">
+          <button
+            onClick={() => setShowSourcesModal(true)}
+            className="text-slate-400 hover:text-cyan-400 underline underline-offset-2 flex items-center gap-1 cursor-pointer"
+          >
+            Data & Model Sources
+          </button>
+          <span>•</span>
           <button
             onClick={() => setShowSnapshotsModal(true)}
             className="text-slate-400 hover:text-cyan-400 underline underline-offset-2 flex items-center gap-1 cursor-pointer"

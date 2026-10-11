@@ -20,6 +20,7 @@ import {
   Building2,
   LayoutGrid,
   Layers,
+  Database,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { DynamicLogo } from './DynamicLogo';
@@ -37,6 +38,7 @@ interface HeaderProps {
   onOpenPipeline?: () => void;
   onOpenIndianStocksModal?: () => void;
   onOpenSnapshots?: () => void;
+  onOpenSources?: () => void;
   user?: UserProfile | null;
   onOpenLogin?: () => void;
   onLogout?: () => void;
@@ -155,6 +157,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPipeline,
   onOpenIndianStocksModal,
   onOpenSnapshots,
+  onOpenSources,
   user,
   onOpenLogin,
   onLogout,
@@ -332,6 +335,18 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Layers className="w-3 h-3 text-cyan-400" />
               <span className="font-semibold">Snapshots</span>
+            </button>
+          )}
+
+          {onOpenSources && (
+            <button
+              id="header-sources-btn"
+              onClick={onOpenSources}
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800/90 hover:bg-slate-750 text-slate-200 border border-slate-700 text-[11px] font-mono transition-colors shadow-sm"
+              title="View Official Sources & Data Pipeline Registry (SOURCES.md)"
+            >
+              <Database className="w-3 h-3 text-cyan-400" />
+              <span className="font-semibold">Sources</span>
             </button>
           )}
 
