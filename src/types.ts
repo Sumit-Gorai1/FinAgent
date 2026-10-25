@@ -90,6 +90,50 @@ export interface FundamentalData {
   interpretation: string;
 }
 
+export interface FinBertProbabilities {
+  positive: number;
+  negative: number;
+  neutral: number;
+}
+
+export interface FinBertResult {
+  text: string;
+  label: 'positive' | 'negative' | 'neutral';
+  score: number;
+  probabilities: FinBertProbabilities;
+  polarity: number; // -1.000 to +1.000
+  sentimentVerdict: 'STRONG_BULLISH' | 'BULLISH' | 'NEUTRAL' | 'BEARISH' | 'STRONG_BEARISH';
+  source: 'HUGGINGFACE_INFERENCE_API' | 'FINBERT_PHRASEBANK_LOCAL_ENGINE';
+  latencyMs?: number;
+}
+
+export interface FinBertBatchAnalysisResponse {
+  success: boolean;
+  symbol?: string;
+  model: 'ProsusAI/finbert';
+  modelUrl: string;
+  totalAnalyzed: number;
+  averagePolarity: number;
+  aggregateSentiment: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  distribution: {
+    positiveCount: number;
+    negativeCount: number;
+    neutralCount: number;
+    positivePercent: number;
+    negativePercent: number;
+    neutralPercent: number;
+  };
+  results: FinBertResult[];
+  benchmark: {
+    dataset: string;
+    classes: string[];
+    accuracy: string;
+    f1Score: string;
+    specialization: string;
+  };
+  timestamp: string;
+}
+
 export interface NewsArticle {
   id: string;
   title: string;
@@ -104,6 +148,12 @@ export interface NewsArticle {
   url?: string;
   timestamp?: number;
   timeHorizon?: '2-4h' | '24h' | string;
+  finbert?: {
+    label: 'positive' | 'negative' | 'neutral';
+    score: number;
+    probabilities: FinBertProbabilities;
+    polarity: number;
+  };
 }
 
 export interface SectorMacroChain {
@@ -352,7 +402,36 @@ export type TargetAllocationModelType =
   | 'BALANCED_GROWTH'
   | 'DEFENSIVE_CAPITAL'
   | 'EQUAL_WEIGHT'
+  | 'RISK_PARITY'
+  | 'FINBERT_MOMENTUM_ALPHA'
+  | 'QUALITY_VALUE_DIVIDEND'
+  | 'MIN_VARIANCE'
+  | 'SECTOR_CAPPED_EQUAL'
   | 'CUSTOM';
+
+export type RebalanceDriftMode = 'ABSOLUTE' | 'RELATIVE' | 'VOLATILITY_ADJUSTED';
+export type RebalanceCadence = 'CONTINUOUS_DRIFT' | 'WEEKLY_MONDAY' | 'MONTHLY_START' | 'QUARTERLY_WINDOW';
+
+export interface RebalanceConfigOptions {
+  driftMode: RebalanceDriftMode;
+  driftThreshold: number; // percentage, e.g. 2.5
+  cadence: RebalanceCadence;
+  cashBufferPercent: number; // percentage of portfolio to keep as cash, e.g. 5
+  minTradeThreshold: number; // minimum rupee value for trade execution, e.g. 1000
+  taxLossHarvesting: boolean; // prioritize selling loss-making lots
+  volatilitySpikeTrigger: boolean; // trigger if 10-day volatility > 22%
+  finbertShockTrigger: boolean; // trigger if finbert score < -0.40
+}
+
+export interface RebalanceCostBreakdown {
+  sttDelivery: number; // 0.1% on equity delivery
+  exchangeTurnoverFee: number; // ~0.00345%
+  brokerageFee: number; // Flat ₹20 or 0.03%
+  gstAmount: number; // 18% on brokerage + turnover
+  stampDuty: number; // 0.015% on buy orders
+  totalFriction: number;
+  frictionPercent: number;
+}
 
 export interface RebalanceRecommendation {
   symbol: string;
@@ -370,8 +449,12 @@ export interface RebalanceRecommendation {
   orderValue: number;
   postRebalanceWeight: number;
   researchScore: number;
+  volatility30d?: number;
+  finbertSentimentPolarity?: number;
+  unrealizedPnL?: number;
   reasoning: string;
   urgency: 'HIGH' | 'MEDIUM' | 'LOW';
+  filteredByMinThreshold?: boolean;
 }
 
 export interface RebalancePlan {
@@ -383,6 +466,11 @@ export interface RebalancePlan {
   totalTurnoverPercent: number;
   netCashRequired: number;
   estimatedCost: number;
+  costBreakdown?: RebalanceCostBreakdown;
+  cashBufferPercent?: number;
+  cashBufferValue?: number;
+  investableEquityValue?: number;
+  configApplied?: RebalanceConfigOptions;
   items: RebalanceRecommendation[];
   aiDirectives?: {
     summary: string;

@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { NewsArticle } from '../src/types';
+import { analyzeWithLocalFinBert } from './finbertService';
 
 // ============================================================================
 // LIVE NEWS INTELLIGENCE SERVICE
@@ -417,6 +418,7 @@ function getCuratedFallbackNews(symbol: string, stockName?: string): { recent2to
     const formatted = specific.map((item, index) => {
       const pubDate = new Date(baseTime - item.minsAgo * 60 * 1000);
       const is2to4h = item.minsAgo <= 240; // 4 hours = 240 mins
+      const fb = analyzeWithLocalFinBert(item.title);
       return {
         id: `fresh-${symbol.toLowerCase()}-${index + 1}-${pubDate.getTime()}`,
         title: item.title,
@@ -431,6 +433,12 @@ function getCuratedFallbackNews(symbol: string, stockName?: string): { recent2to
         url: item.url,
         timestamp: pubDate.getTime(),
         timeHorizon: is2to4h ? ('2-4h' as const) : ('24h' as const),
+        finbert: {
+          label: fb.label,
+          score: fb.score,
+          probabilities: fb.probabilities,
+          polarity: fb.polarity,
+        },
       };
     });
 
@@ -509,6 +517,7 @@ function getCuratedFallbackNews(symbol: string, stockName?: string): { recent2to
   const formattedDynamic = dynamicTemplates.map((t, index) => {
     const pubDate = new Date(baseTime - t.titleOffset * 60 * 1000);
     const is2to4h = t.titleOffset <= 240;
+    const fb = analyzeWithLocalFinBert(t.title);
     return {
       id: `fresh-${symbol.toLowerCase()}-${index + 1}-${pubDate.getTime()}`,
       title: t.title,
@@ -523,6 +532,12 @@ function getCuratedFallbackNews(symbol: string, stockName?: string): { recent2to
       url: 'https://economictimes.indiatimes.com/markets',
       timestamp: pubDate.getTime(),
       timeHorizon: is2to4h ? ('2-4h' as const) : ('24h' as const),
+      finbert: {
+        label: fb.label,
+        score: fb.score,
+        probabilities: fb.probabilities,
+        polarity: fb.polarity,
+      },
     };
   });
 
@@ -636,6 +651,7 @@ export async function fetchLiveNewsForSymbol(
           const classification = classifyNewsSentiment(cleanTitle, source);
           const formattedDate = formatRecentDate(pubDate, now);
           const is2to4h = ageMs <= max2to4hMs;
+          const fb = analyzeWithLocalFinBert(cleanTitle);
 
           rawArticles.push({
             id: `fresh-news-${cleanSym}-${pubDate.getTime()}-${rawArticles.length + 1}`,
@@ -651,6 +667,12 @@ export async function fetchLiveNewsForSymbol(
             url: link || undefined,
             timestamp: pubDate.getTime(),
             timeHorizon: is2to4h ? '2-4h' : '24h',
+            finbert: {
+              label: fb.label,
+              score: fb.score,
+              probabilities: fb.probabilities,
+              polarity: fb.polarity,
+            },
           });
 
           if (rawArticles.length >= 8) break;

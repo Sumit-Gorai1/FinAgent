@@ -17,6 +17,7 @@ import {
   Scale,
   Clock,
   Code2,
+  Brain,
 } from 'lucide-react';
 
 interface SourcesModalProps {
@@ -25,7 +26,7 @@ interface SourcesModalProps {
 }
 
 export const SourcesModal: React.FC<SourcesModalProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'exchanges' | 'etfs' | 'models' | 'ai' | 'typography' | 'persistence'>('exchanges');
+  const [activeTab, setActiveTab] = useState<'exchanges' | 'etfs' | 'models' | 'ai' | 'finbert' | 'typography' | 'persistence'>('exchanges');
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
@@ -34,7 +35,8 @@ export const SourcesModal: React.FC<SourcesModalProps> = ({ isOpen, onClose }) =
     const text = `FINAGENT Data & Model Sources:
 - Exchanges: NSE & BSE (2,570+ Equities, 6-digit BSE Scrip mapping, Level-2 Depth, Real-time Arbitrage)
 - ETFs: 60+ Indian & Global ETFs (iNAV, tracking error, expense ratio, dynamic capital outlay)
-- AI Engine: Google Gemini 2.5 API (@google/genai) across 10-Agent Autonomous Swarm
+- NLP Sentiment Model: ProsusAI/finbert on Hugging Face (https://huggingface.co/ProsusAI/finbert) trained on Financial PhraseBank (86% accuracy, 0.88 F1)
+- Multi-Agent AI Engine: Google Gemini 2.5 API (@google/genai) across 10-Agent Autonomous Swarm
 - Valuation: Two-Stage DCF, Graham Formula, Piotroski F-Score (9 criteria), Altman Z-Score
 - Freshness: Strict <24h news wire filter (stale news discarded)
 - Typography: Calibri with 6 weight grades & financial color grade hierarchy
@@ -130,6 +132,17 @@ export const SourcesModal: React.FC<SourcesModalProps> = ({ isOpen, onClose }) =
           >
             <Cpu className="w-3.5 h-3.5" />
             10-Agent AI & News
+          </button>
+          <button
+            onClick={() => setActiveTab('finbert')}
+            className={`px-3 py-2 text-xs font-medium border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'finbert'
+                ? 'border-violet-400 text-violet-300 font-bold'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Brain className="w-3.5 h-3.5" />
+            FinBERT NLP Model
           </button>
           <button
             onClick={() => setActiveTab('typography')}
@@ -303,6 +316,72 @@ export const SourcesModal: React.FC<SourcesModalProps> = ({ isOpen, onClose }) =
                 <p className="text-slate-400 text-[11px]">
                   All news items and corporate disclosures are strictly filtered for recency. News older than 24 hours is automatically discarded to prevent stale data contamination.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* FinBERT NLP Model Tab */}
+          {activeTab === 'finbert' && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-white text-sm flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-violet-400" />
+                    ProsusAI/finbert Financial NLP Sentiment Engine
+                  </span>
+                  <a
+                    href="https://huggingface.co/ProsusAI/finbert"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold"
+                  >
+                    <span>Hugging Face Hub</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                <p className="text-slate-400">
+                  FinBERT is a domain-specific BERT language model fine-tuned by Prosus AI for classifying financial sentiment across three granular classes: <span className="text-emerald-400 font-bold">positive</span>, <span className="text-slate-300 font-bold">neutral</span>, and <span className="text-rose-400 font-bold">negative</span>.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
+                  <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
+                    <span className="text-slate-500 block">Base Architecture</span>
+                    <span className="text-slate-200 font-semibold">BERT-base-uncased</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
+                    <span className="text-slate-500 block">Benchmark Corpus</span>
+                    <span className="text-slate-200 font-semibold">Financial PhraseBank</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
+                    <span className="text-slate-500 block">Accuracy / F1</span>
+                    <span className="text-emerald-400 font-semibold">86% / 0.88 Macro F1</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
+                    <span className="text-slate-500 block">Output Space</span>
+                    <span className="text-cyan-300 font-semibold">3-Class Softmax</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                <span className="font-bold text-cyan-300 text-xs block">Mathematical Polarity Formulation:</span>
+                <p className="text-[11px] text-slate-400">
+                  Every disclosure or headline is passed through the FinBERT token embeddings and softmax layer. The bounded Polarity Index is computed as:
+                </p>
+                <code className="text-[11px] text-cyan-300 block bg-slate-900 p-2.5 rounded font-mono">
+                  Polarity = P(positive) - P(negative) ∈ [-1.000, +1.000]
+                </code>
+                <p className="text-[11px] text-slate-400 pt-1">
+                  • <strong className="text-emerald-400">&gt; +0.15:</strong> Bullish Market Stance | • <strong className="text-slate-300">-0.15 to +0.15:</strong> Neutral / Informational | • <strong className="text-rose-400">&lt; -0.15:</strong> Bearish Risk
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2 text-[11px]">
+                <span className="font-bold text-white text-xs block">API Integration Contracts:</span>
+                <div className="space-y-1.5 text-slate-300 font-mono">
+                  <div>• <code className="text-cyan-300">POST /api/finbert/analyze</code>: Batch or single-text inference with probabilities and polarity.</div>
+                  <div>• <code className="text-cyan-300">GET /api/finbert/model-info</code>: Model specification, training corpus metadata, and evaluation metrics.</div>
+                  <div>• <code className="text-cyan-300">GET /api/live-market/news/:symbol</code>: Augmented with per-headline FinBERT probability distributions.</div>
+                </div>
               </div>
             </div>
           )}

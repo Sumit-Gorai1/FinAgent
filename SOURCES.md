@@ -15,11 +15,12 @@ This document serves as the single source of truth for:
 1. **Exchange Market Data Feeds** (NSE & BSE)
 2. **Exchange Traded Funds (ETFs) Pipeline** (60+ Indian & Global ETFs)
 3. **Multi-Agent AI Intelligence Engine** (Gemini 2.5 API via `@google/genai`)
-4. **Quantitative Valuation Models & Financial Formulas** (DCF, Graham, Piotroski, Altman, CAPM)
-5. **Fresh News & Corporate Filings Feeds** (Strictly < 24-hour freshness)
-6. **Dynamic Watchlist & Portfolio Persistence Engine** (Local storage schemas & state contracts)
-7. **Calibri Typographic Hierarchy & Optical Grade Palette** (Font specifications & color grades)
-8. **SEBI Compliance & Educational Framework**
+4. **Domain-Specific NLP Sentiment Model** (ProsusAI/finbert on Hugging Face)
+5. **Quantitative Valuation Models & Financial Formulas** (DCF, Graham, Piotroski, Altman, CAPM)
+6. **Fresh News & Corporate Filings Feeds** (Strictly < 24-hour freshness)
+7. **Dynamic Watchlist & Portfolio Persistence Engine** (Local storage schemas & state contracts)
+8. **Calibri Typographic Hierarchy & Optical Grade Palette** (Font specifications & color grades)
+9. **SEBI Compliance & Educational Framework**
 
 ---
 
@@ -104,6 +105,26 @@ FINAGENT’s analytical core utilizes the modern `@google/genai` TypeScript SDK 
 - **`gemini-2.5-flash`:** Deployed for high-frequency extraction, technical pattern validation, real-time news freshness triage (<24h), and real-time chat co-pilot responses.
 - **`gemini-2.5-pro`:** Deployed for high-conviction adversarial bull-versus-bear stress testing, forensic balance sheet auditing, and Investment Committee scorecard formulation.
 - **Zero Hallucination Protocol:** Financial figures (EPS, PE, Debt/Equity, Free Cash Flow, Book Value) are strictly derived from the audited data layer and injected into the prompt context; the LLM is prohibited from guessing financial constants.
+
+### 3.2 Domain-Specific Financial Sentiment Model: ProsusAI/finbert
+- **Model Identifier:** `ProsusAI/finbert`
+- **Hugging Face Hub Repository:** [https://huggingface.co/ProsusAI/finbert](https://huggingface.co/ProsusAI/finbert)
+- **Creator / Maintainer:** Prosus AI
+- **Underlying Architecture:** `BERT-base-uncased` fine-tuned on financial domain corpora.
+- **Benchmark Corpus:** Financial PhraseBank (Malo et al.), comprising 4,845 sentences selected from financial news releases and corporate announcements, individually annotated by 16 financial market experts.
+- **Classification Performance:**
+  - Accuracy: **86%** on 100% agreement Financial PhraseBank subset.
+  - Macro F1-Score: **0.88**.
+- **Output Classes:** 3 discrete classes with normalized Softmax probability distribution:
+  - `P(positive)`: Probability of positive financial tone (earnings beat, debt deleveraging, dividend hike).
+  - `P(neutral)`: Probability of purely factual / informational corporate event (board meeting notice, filing submission).
+  - `P(negative)`: Probability of negative risk / impairment (margin compression, litigation, downgrades).
+- **Mathematical Polarity Formulation:**
+  $$\text{Polarity} = P(\text{positive}) - P(\text{negative}) \quad \in [-1.000, +1.000]$$
+- **System Endpoints & Integration:**
+  - `POST /api/finbert/analyze`: Analyzes text or batch of financial sentences, returning class label, confidence, Softmax probabilities, and polarity score.
+  - `GET /api/finbert/model-info`: Delivers model metadata, benchmark accuracy stats, and architectural specs.
+  - `GET /api/live-market/news/:symbol`: Every active market wire disclosure is augmented with per-item FinBERT Softmax distribution and polarity rating.
 
 ---
 

@@ -34,6 +34,7 @@ import {
   CornerDownLeft,
   LayoutGrid,
   Star,
+  Brain,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -56,6 +57,7 @@ import { DynamicValuationModel } from './DynamicValuationModel';
 import { TradingViewChart } from './TradingViewChart';
 import { FinancialChart } from './FinancialChart';
 import { SectorHeatmap } from './SectorHeatmap';
+import { FinBertSentimentRadar } from './FinBertSentimentRadar';
 import { EducationalDisclaimer } from './EducationalDisclaimer';
 import { ErrorBoundary } from './ErrorBoundary';
 import { playAlertChime } from '../utils/soundAlert';
@@ -97,7 +99,7 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
 }) => {
   const [macroSubView, setMacroSubView] = React.useState<'chain' | 'heatmap'>('chain');
   const [activeTab, setActiveTab] = React.useState<
-    'overview' | 'valuation' | 'technicals' | 'fundamentals' | 'news' | 'macro' | 'debate' | 'risk' | 'alerts' | 'ai-copilot' | 'memory' | 'verifier'
+    'overview' | 'valuation' | 'technicals' | 'fundamentals' | 'news' | 'finbert' | 'macro' | 'debate' | 'risk' | 'alerts' | 'ai-copilot' | 'memory' | 'verifier'
   >('overview');
 
   // Indian Market Session status (Regular trading: Mon-Fri 09:15 - 15:30 IST)
@@ -634,6 +636,7 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
           { id: 'technicals', label: 'Technical Indicators', icon: <Activity className="w-3.5 h-3.5" /> },
           { id: 'fundamentals', label: 'Fundamental Audit', icon: <BookOpen className="w-3.5 h-3.5" /> },
           { id: 'news', label: `News Intelligence (${isFetchingNews ? '...' : liveNews.length})`, icon: <Newspaper className="w-3.5 h-3.5" /> },
+          { id: 'finbert', label: 'FinBERT Sentiment Engine', icon: <Brain className="w-3.5 h-3.5 text-violet-400" /> },
           { id: 'macro', label: 'Sector & Macro Chain', icon: <Globe2 className="w-3.5 h-3.5" /> },
           { id: 'debate', label: 'Bull vs Bear Debate', icon: <Scale className="w-3.5 h-3.5" /> },
           { id: 'risk', label: 'Risk Manager Matrix', icon: <ShieldCheck className="w-3.5 h-3.5" /> },
@@ -1079,8 +1082,17 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
                 </p>
               </div>
 
-              {/* Action Buttons: Live Fetch & Horizon Status */}
+              {/* Action Buttons: Live Fetch & Horizon Status & FinBERT */}
               <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setActiveTab('finbert')}
+                  className="px-3 py-1.5 rounded-lg bg-violet-950/80 hover:bg-violet-900 border border-violet-800 text-violet-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                  title="Open ProsusAI/finbert Financial Sentiment Radar"
+                >
+                  <Brain className="w-3.5 h-3.5 text-violet-400" />
+                  <span>FinBERT Radar</span>
+                </button>
+
                 <div className="text-[11px] font-mono text-slate-400 hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   <span>Wire: {newsFetchedTime}</span>
@@ -1245,10 +1257,19 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
                     <p className="text-xs text-slate-400 leading-relaxed">{art.summary}</p>
 
                     <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-mono text-slate-400 gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span>Impact: <strong className="text-white">{art.impact}</strong></span>
                         <span>•</span>
                         <span>AI Confidence: <strong className="text-cyan-400">{(art.confidence * 100).toFixed(0)}%</strong></span>
+                        {art.finbert && (
+                          <>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1 text-violet-300">
+                              <Brain className="w-3 h-3 text-violet-400" />
+                              <span>FinBERT: <strong className="text-white capitalize">{art.finbert.label}</strong> ({art.finbert.polarity >= 0 ? `+${art.finbert.polarity}` : art.finbert.polarity})</span>
+                            </span>
+                          </>
+                        )}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-1">
@@ -1266,6 +1287,15 @@ export const StockResearchView: React.FC<StockResearchViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* TAB CONTENT: ProsusAI/finbert Financial Sentiment Radar & Inference Lab */}
+      {activeTab === 'finbert' && (
+        <FinBertSentimentRadar
+          symbol={stock.symbol}
+          stockName={stock.name}
+          articles={liveNews}
+        />
       )}
 
       {/* TAB CONTENT: Sector & Macro Chain */}
