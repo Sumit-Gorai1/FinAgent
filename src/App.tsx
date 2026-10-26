@@ -8,7 +8,7 @@ import { PaperTradingLab } from './components/PaperTradingLab';
 import { ComplianceModal } from './components/ComplianceModal';
 import { mockStocksCatalog, defaultWatchlist, defaultPortfolio } from './data/mockStocks';
 import { getOrCreateStockData } from './utils/stockDataHelper';
-import { resolveStockQuery } from './utils/stockSearchResolver';
+import { resolveStockQuery, getStockDetails } from './utils/stockSearchResolver';
 import { StockResearchData, WatchlistItem, PortfolioHolding, PaperOrder, TriggerEvent, PriceAlert, PriceAlertNotification, UserProfile } from './types';
 import { PriceAlertNotificationBanner } from './components/PriceAlertNotificationBanner';
 import { BugAgentModal } from './components/BugAgentModal';
@@ -230,28 +230,184 @@ export default function App() {
     } catch {}
   }, []);
 
-  const [paperOrders, setPaperOrders] = React.useState<PaperOrder[]>([
-    {
-      id: 'ORD-78901',
-      symbol: 'RELIANCE',
-      type: 'BUY',
-      shares: 30,
-      price: 1245.0,
-      totalAmount: 37350,
-      timestamp: '09:35 AM',
-      reason: 'AI Committee High Conviction Breakout Signal',
-    },
-    {
-      id: 'ORD-78902',
-      symbol: 'HDFCBANK',
-      type: 'BUY',
-      shares: 50,
-      price: 702.5,
-      totalAmount: 35125,
-      timestamp: '11:15 AM',
-      reason: 'NIM Stabilization & Low Credit Risk Setup',
-    },
-  ]);
+  // =========================================================================
+  // DEDICATED PAPER TRADING SANDBOX STATE (100% Isolated from Core Portfolio)
+  // =========================================================================
+  const defaultPaperPortfolio: PortfolioHolding[] = React.useMemo(
+    () => [
+      {
+        symbol: 'RELIANCE',
+        name: 'Reliance Industries Ltd',
+        shares: 30,
+        avgBuyPrice: 1245.0,
+        currentPrice: 1282.0,
+        weightPercent: 52.2,
+        sector: 'Energy & Petrochemicals',
+        score: 82,
+        researchScore: 82,
+        unrealizedPnL: 1110.0,
+        unrealizedPnLPercent: 2.97,
+        dayChange: 14.5,
+        dayChangePercent: 1.14,
+        dayPnL: 435.0,
+        previousClose: 1267.5,
+      },
+      {
+        symbol: 'HDFCBANK',
+        name: 'HDFC Bank Ltd',
+        shares: 50,
+        avgBuyPrice: 702.5,
+        currentPrice: 722.7,
+        weightPercent: 47.8,
+        sector: 'Banking & Financial Services',
+        score: 79,
+        researchScore: 79,
+        unrealizedPnL: 1010.0,
+        unrealizedPnLPercent: 2.88,
+        dayChange: 6.2,
+        dayChangePercent: 0.87,
+        dayPnL: 310.0,
+        previousClose: 716.5,
+      },
+    ],
+    []
+  );
+
+  const defaultDemoPaperOrders: PaperOrder[] = React.useMemo(
+    () => [
+      {
+        id: 'PAPER-78901',
+        symbol: 'RELIANCE',
+        type: 'BUY',
+        shares: 30,
+        price: 1245.0,
+        totalAmount: 37350,
+        timestamp: '09:35 AM',
+        reason: 'AI Committee High Conviction Breakout Signal',
+      },
+      {
+        id: 'PAPER-78902',
+        symbol: 'HDFCBANK',
+        type: 'BUY',
+        shares: 50,
+        price: 702.5,
+        totalAmount: 35125,
+        timestamp: '11:15 AM',
+        reason: 'NIM Stabilization & Low Credit Risk Setup',
+      },
+    ],
+    []
+  );
+
+  const [paperHoldings, setPaperHoldings] = React.useState<PortfolioHolding[]>(() => {
+    try {
+      const saved = localStorage.getItem('finagent_paper_holdings');
+      if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to parse paper holdings', e);
+    }
+    return [
+      {
+        symbol: 'RELIANCE',
+        name: 'Reliance Industries Ltd',
+        shares: 30,
+        avgBuyPrice: 1245.0,
+        currentPrice: 1282.0,
+        weightPercent: 52.2,
+        sector: 'Energy & Petrochemicals',
+        score: 82,
+        researchScore: 82,
+        unrealizedPnL: 1110.0,
+        unrealizedPnLPercent: 2.97,
+        dayChange: 14.5,
+        dayChangePercent: 1.14,
+        dayPnL: 435.0,
+        previousClose: 1267.5,
+      },
+      {
+        symbol: 'HDFCBANK',
+        name: 'HDFC Bank Ltd',
+        shares: 50,
+        avgBuyPrice: 702.5,
+        currentPrice: 722.7,
+        weightPercent: 47.8,
+        sector: 'Banking & Financial Services',
+        score: 79,
+        researchScore: 79,
+        unrealizedPnL: 1010.0,
+        unrealizedPnLPercent: 2.88,
+        dayChange: 6.2,
+        dayChangePercent: 0.87,
+        dayPnL: 310.0,
+        previousClose: 716.5,
+      },
+    ];
+  });
+
+  const [paperCashBalance, setPaperCashBalance] = React.useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('finagent_paper_cash_balance');
+      if (saved !== null) {
+        const parsed = parseFloat(saved);
+        if (!isNaN(parsed) && parsed >= 0) return parsed;
+      }
+    } catch {}
+    return 927525; // ₹10,00,000 INR starting capital minus demo positions (₹72,475)
+  });
+
+  const [paperOrders, setPaperOrders] = React.useState<PaperOrder[]>(() => {
+    try {
+      const saved = localStorage.getItem('finagent_paper_orders');
+      if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [
+      {
+        id: 'PAPER-78901',
+        symbol: 'RELIANCE',
+        type: 'BUY',
+        shares: 30,
+        price: 1245.0,
+        totalAmount: 37350,
+        timestamp: '09:35 AM',
+        reason: 'AI Committee High Conviction Breakout Signal',
+      },
+      {
+        id: 'PAPER-78902',
+        symbol: 'HDFCBANK',
+        type: 'BUY',
+        shares: 50,
+        price: 702.5,
+        totalAmount: 35125,
+        timestamp: '11:15 AM',
+        reason: 'NIM Stabilization & Low Credit Risk Setup',
+      },
+    ];
+  });
+
+  // Auto-save Paper Trading Sandbox state to localStorage
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('finagent_paper_holdings', JSON.stringify(paperHoldings));
+    } catch {}
+  }, [paperHoldings]);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('finagent_paper_cash_balance', paperCashBalance.toString());
+    } catch {}
+  }, [paperCashBalance]);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('finagent_paper_orders', JSON.stringify(paperOrders));
+    } catch {}
+  }, [paperOrders]);
 
   const [recentAlerts, setRecentAlerts] = React.useState<
     {
@@ -414,6 +570,11 @@ export default function App() {
     holdingsRef.current = holdings;
   }, [holdings]);
 
+  const paperHoldingsRef = React.useRef(paperHoldings);
+  React.useEffect(() => {
+    paperHoldingsRef.current = paperHoldings;
+  }, [paperHoldings]);
+
   const selectedSymbolRef = React.useRef(selectedSymbol);
   React.useEffect(() => {
     selectedSymbolRef.current = selectedSymbol;
@@ -434,9 +595,10 @@ export default function App() {
 
     try {
       const holdingSymbols = (holdingsRef.current || []).map((h) => h.symbol);
+      const paperSymbols = (paperHoldingsRef.current || []).map((h) => h.symbol);
       const activeSymbols =
         targetSymbols ||
-        Array.from(new Set([selectedSymbolRef.current, 'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'NVDA', '^NSEI', '^BSESN', ...holdingSymbols]));
+        Array.from(new Set([selectedSymbolRef.current, 'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'NVDA', '^NSEI', '^BSESN', ...holdingSymbols, ...paperSymbols]));
       const symList = activeSymbols.join(',');
       const res = await fetch(`/api/live-market/quotes?symbols=${encodeURIComponent(symList)}`);
       const roundTripMs = Number((performance.now() - t0).toFixed(1));
@@ -561,6 +723,44 @@ export default function App() {
             }));
           });
 
+          // Dynamically synchronize live market quotes into separate paper trading holdings
+          setPaperHoldings((prevPaper) => {
+            let hasChanges = false;
+            const updated = prevPaper.map((h) => {
+              const q = (json.quotes as Record<string, any>)[h.symbol];
+              if (!q || typeof q.price !== 'number') return h;
+              hasChanges = true;
+              const newPrice = Number(q.price.toFixed(2));
+              const prevCls = q.previousClose || h.previousClose || h.avgBuyPrice;
+              const dayChange = q.change !== undefined ? Number(q.change.toFixed(2)) : Number((newPrice - prevCls).toFixed(2));
+              const dayChangePercent = q.changePercent !== undefined ? Number(q.changePercent.toFixed(2)) : (prevCls > 0 ? Number(((dayChange / prevCls) * 100).toFixed(2)) : 0);
+              const unrealizedPnL = Number(((newPrice - h.avgBuyPrice) * h.shares).toFixed(2));
+              const unrealizedPnLPercent = h.avgBuyPrice > 0 ? Number((((newPrice - h.avgBuyPrice) / h.avgBuyPrice) * 100).toFixed(2)) : 0;
+              const dayPnL = Number((dayChange * h.shares).toFixed(2));
+              const priceFlash: 'up' | 'down' | null = newPrice > h.currentPrice ? 'up' : newPrice < h.currentPrice ? 'down' : null;
+
+              return {
+                ...h,
+                currentPrice: newPrice,
+                previousClose: prevCls,
+                dayChange,
+                dayChangePercent,
+                dayPnL,
+                unrealizedPnL,
+                unrealizedPnLPercent,
+                priceFlash,
+                lastUpdated: Date.now(),
+              };
+            });
+
+            if (!hasChanges) return prevPaper;
+            const totalVal = updated.reduce((sum, h) => sum + h.currentPrice * h.shares, 0);
+            return updated.map((h) => ({
+              ...h,
+              weightPercent: totalVal > 0 ? parseFloat(((h.currentPrice * h.shares / totalVal) * 100).toFixed(1)) : 0,
+            }));
+          });
+
           setLastTickTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         }
       }
@@ -584,8 +784,9 @@ export default function App() {
     if (feedMode === 'LIVE_MARKET') {
       const liveInterval = setInterval(() => {
         const holdingSymbols = (holdingsRef.current || []).map((h) => h.symbol);
+        const paperSymbols = (paperHoldingsRef.current || []).map((h) => h.symbol);
         const symbolsToPoll = Array.from(
-          new Set([selectedSymbolRef.current, 'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'NVDA', ...holdingSymbols])
+          new Set([selectedSymbolRef.current, 'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'NVDA', ...holdingSymbols, ...paperSymbols])
         );
         syncLiveQuotes(symbolsToPoll);
       }, pollIntervalMs);
@@ -955,7 +1156,9 @@ export default function App() {
     setSelectedSymbol(sym);
   };
 
-  // Paper order execution
+  // =========================================================================
+  // CORE PORTFOLIO ORDER EXECUTION (Strictly for real/core holdings & cash)
+  // =========================================================================
   const handleExecuteOrder = (order: {
     symbol: string;
     type: 'BUY' | 'SELL';
@@ -963,47 +1166,181 @@ export default function App() {
     price: number;
     reason: string;
   }) => {
+    const cleanSymbol = order.symbol.trim().toUpperCase();
     const total = order.shares * order.price;
 
     if (order.type === 'BUY') {
-      setCashBalance((prev) => prev - total);
+      setCashBalance((prev) => Math.max(0, prev - total));
       setHoldings((prev) => {
-        const existing = prev.find((h) => h.symbol === order.symbol);
+        const existing = prev.find((h) => h.symbol.toUpperCase() === cleanSymbol);
+        let updated: PortfolioHolding[];
         if (existing) {
           const newShares = existing.shares + order.shares;
           const newAvgPrice = (existing.shares * existing.avgBuyPrice + total) / newShares;
-          return prev.map((h) =>
-            h.symbol === order.symbol ? { ...h, shares: newShares, avgBuyPrice: Math.round(newAvgPrice) } : h
+          const unrealizedPnL = Number(((existing.currentPrice - newAvgPrice) * newShares).toFixed(2));
+          const unrealizedPnLPercent = newAvgPrice > 0 ? Number((((existing.currentPrice - newAvgPrice) / newAvgPrice) * 100).toFixed(2)) : 0;
+          updated = prev.map((h) =>
+            h.symbol.toUpperCase() === cleanSymbol
+              ? {
+                  ...h,
+                  shares: newShares,
+                  avgBuyPrice: Number(newAvgPrice.toFixed(2)),
+                  currentPrice: order.price,
+                  unrealizedPnL,
+                  unrealizedPnLPercent,
+                  dayPnL: Number(((h.dayChange || 0) * newShares).toFixed(2)),
+                }
+              : h
           );
         } else {
-          return [
-            ...prev,
-            {
-              symbol: order.symbol,
-              shares: order.shares,
-              avgBuyPrice: order.price,
-              currentPrice: order.price,
-              pnl: 0,
-              pnlPercent: 0,
-              researchScore: stocks[order.symbol]?.committee.overallScore || 75,
-              sector: stocks[order.symbol]?.sectorMacro.sectorName || 'General',
-            },
-          ];
+          const stockData = stocks[cleanSymbol] || stocks[order.symbol];
+          const catalogItem = getStockDetails(cleanSymbol);
+          const newHolding: PortfolioHolding = {
+            symbol: cleanSymbol,
+            name: stockData?.name || catalogItem?.name || cleanSymbol,
+            shares: order.shares,
+            avgBuyPrice: order.price,
+            currentPrice: order.price,
+            weightPercent: 0,
+            unrealizedPnL: 0,
+            unrealizedPnLPercent: 0,
+            dayChange: stockData?.change || 0,
+            dayChangePercent: stockData?.changePercent || 0,
+            dayPnL: 0,
+            previousClose: stockData?.previousClose || catalogItem?.price || order.price,
+            score: stockData?.committee?.overallScore ?? (catalogItem?.marginOfSafetyPercent ? Math.min(95, 70 + Math.round(catalogItem.marginOfSafetyPercent / 2)) : 75),
+            researchScore: stockData?.committee?.overallScore ?? 75,
+            sector: stockData?.sectorMacro?.sectorName || stockData?.sector || catalogItem?.sector || 'General',
+          };
+          updated = [...prev, newHolding];
         }
+        const totalVal = updated.reduce((sum, h) => sum + h.currentPrice * h.shares, 0);
+        return updated.map((h) => ({
+          ...h,
+          weightPercent: totalVal > 0 ? parseFloat(((h.currentPrice * h.shares / totalVal) * 100).toFixed(1)) : 0,
+        }));
       });
     } else {
       setCashBalance((prev) => prev + total);
-      setHoldings((prev) =>
-        prev
-          .map((h) => (h.symbol === order.symbol ? { ...h, shares: Math.max(0, h.shares - order.shares) } : h))
-          .filter((h) => h.shares > 0)
-      );
+      setHoldings((prev) => {
+        const remaining = prev
+          .map((h) => {
+            if (h.symbol.toUpperCase() !== cleanSymbol) return h;
+            const remainingShares = Math.max(0, h.shares - order.shares);
+            const unrealizedPnL = Number(((h.currentPrice - h.avgBuyPrice) * remainingShares).toFixed(2));
+            const unrealizedPnLPercent = h.avgBuyPrice > 0 ? Number((((h.currentPrice - h.avgBuyPrice) / h.avgBuyPrice) * 100).toFixed(2)) : 0;
+            return {
+              ...h,
+              shares: remainingShares,
+              unrealizedPnL,
+              unrealizedPnLPercent,
+              dayPnL: Number(((h.dayChange || 0) * remainingShares).toFixed(2)),
+            };
+          })
+          .filter((h) => h.shares > 0);
+        const totalVal = remaining.reduce((sum, h) => sum + h.currentPrice * h.shares, 0);
+        return remaining.map((h) => ({
+          ...h,
+          weightPercent: totalVal > 0 ? parseFloat(((h.currentPrice * h.shares / totalVal) * 100).toFixed(1)) : 0,
+        }));
+      });
+    }
+  };
+
+  // =========================================================================
+  // DEDICATED PAPER TRADING EXECUTION (100% Isolated: affects ONLY paper state)
+  // =========================================================================
+  const handleExecutePaperOrder = (order: {
+    symbol: string;
+    type: 'BUY' | 'SELL';
+    shares: number;
+    price: number;
+    reason: string;
+  }) => {
+    const cleanSymbol = order.symbol.trim().toUpperCase();
+    const total = order.shares * order.price;
+
+    if (order.type === 'BUY') {
+      setPaperCashBalance((prev) => Math.max(0, prev - total));
+      setPaperHoldings((prev) => {
+        const existing = prev.find((h) => h.symbol.toUpperCase() === cleanSymbol);
+        let updated: PortfolioHolding[];
+        if (existing) {
+          const newShares = existing.shares + order.shares;
+          const newAvgPrice = (existing.shares * existing.avgBuyPrice + total) / newShares;
+          const unrealizedPnL = Number(((existing.currentPrice - newAvgPrice) * newShares).toFixed(2));
+          const unrealizedPnLPercent = newAvgPrice > 0 ? Number((((existing.currentPrice - newAvgPrice) / newAvgPrice) * 100).toFixed(2)) : 0;
+          updated = prev.map((h) =>
+            h.symbol.toUpperCase() === cleanSymbol
+              ? {
+                  ...h,
+                  shares: newShares,
+                  avgBuyPrice: Number(newAvgPrice.toFixed(2)),
+                  currentPrice: order.price,
+                  unrealizedPnL,
+                  unrealizedPnLPercent,
+                  dayPnL: Number(((h.dayChange || 0) * newShares).toFixed(2)),
+                }
+              : h
+          );
+        } else {
+          const stockData = stocks[cleanSymbol] || stocks[order.symbol];
+          const catalogItem = getStockDetails(cleanSymbol);
+          const newHolding: PortfolioHolding = {
+            symbol: cleanSymbol,
+            name: stockData?.name || catalogItem?.name || cleanSymbol,
+            shares: order.shares,
+            avgBuyPrice: order.price,
+            currentPrice: order.price,
+            weightPercent: 0,
+            unrealizedPnL: 0,
+            unrealizedPnLPercent: 0,
+            dayChange: stockData?.change || 0,
+            dayChangePercent: stockData?.changePercent || 0,
+            dayPnL: 0,
+            previousClose: stockData?.previousClose || catalogItem?.price || order.price,
+            score: stockData?.committee?.overallScore ?? (catalogItem?.marginOfSafetyPercent ? Math.min(95, 70 + Math.round(catalogItem.marginOfSafetyPercent / 2)) : 75),
+            researchScore: stockData?.committee?.overallScore ?? 75,
+            sector: stockData?.sectorMacro?.sectorName || stockData?.sector || catalogItem?.sector || 'General',
+          };
+          updated = [...prev, newHolding];
+        }
+        const totalVal = updated.reduce((sum, h) => sum + h.currentPrice * h.shares, 0);
+        return updated.map((h) => ({
+          ...h,
+          weightPercent: totalVal > 0 ? parseFloat(((h.currentPrice * h.shares / totalVal) * 100).toFixed(1)) : 0,
+        }));
+      });
+    } else {
+      setPaperCashBalance((prev) => prev + total);
+      setPaperHoldings((prev) => {
+        const remaining = prev
+          .map((h) => {
+            if (h.symbol.toUpperCase() !== cleanSymbol) return h;
+            const remainingShares = Math.max(0, h.shares - order.shares);
+            const unrealizedPnL = Number(((h.currentPrice - h.avgBuyPrice) * remainingShares).toFixed(2));
+            const unrealizedPnLPercent = h.avgBuyPrice > 0 ? Number((((h.currentPrice - h.avgBuyPrice) / h.avgBuyPrice) * 100).toFixed(2)) : 0;
+            return {
+              ...h,
+              shares: remainingShares,
+              unrealizedPnL,
+              unrealizedPnLPercent,
+              dayPnL: Number(((h.dayChange || 0) * remainingShares).toFixed(2)),
+            };
+          })
+          .filter((h) => h.shares > 0);
+        const totalVal = remaining.reduce((sum, h) => sum + h.currentPrice * h.shares, 0);
+        return remaining.map((h) => ({
+          ...h,
+          weightPercent: totalVal > 0 ? parseFloat(((h.currentPrice * h.shares / totalVal) * 100).toFixed(1)) : 0,
+        }));
+      });
     }
 
     setPaperOrders((prev) => [
       {
-        id: 'ORD-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-        symbol: order.symbol,
+        id: 'PAPER-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+        symbol: cleanSymbol,
         type: order.type,
         shares: order.shares,
         price: order.price,
@@ -1013,6 +1350,74 @@ export default function App() {
       },
       ...prev,
     ]);
+  };
+
+  const handleResetPaperTrading = () => {
+    const initialPaper: PortfolioHolding[] = [
+      {
+        symbol: 'RELIANCE',
+        name: 'Reliance Industries Ltd',
+        shares: 30,
+        avgBuyPrice: 1245.0,
+        currentPrice: 1282.0,
+        weightPercent: 52.2,
+        sector: 'Energy & Petrochemicals',
+        score: 82,
+        researchScore: 82,
+        unrealizedPnL: 1110.0,
+        unrealizedPnLPercent: 2.97,
+        dayChange: 14.5,
+        dayChangePercent: 1.14,
+        dayPnL: 435.0,
+        previousClose: 1267.5,
+      },
+      {
+        symbol: 'HDFCBANK',
+        name: 'HDFC Bank Ltd',
+        shares: 50,
+        avgBuyPrice: 702.5,
+        currentPrice: 722.7,
+        weightPercent: 47.8,
+        sector: 'Banking & Financial Services',
+        score: 79,
+        researchScore: 79,
+        unrealizedPnL: 1010.0,
+        unrealizedPnLPercent: 2.88,
+        dayChange: 6.2,
+        dayChangePercent: 0.87,
+        dayPnL: 310.0,
+        previousClose: 716.5,
+      },
+    ];
+    setPaperHoldings(initialPaper);
+    setPaperCashBalance(927525);
+    setPaperOrders([
+      {
+        id: 'PAPER-78901',
+        symbol: 'RELIANCE',
+        type: 'BUY',
+        shares: 30,
+        price: 1245.0,
+        totalAmount: 37350,
+        timestamp: '09:35 AM',
+        reason: 'AI Committee High Conviction Breakout Signal',
+      },
+      {
+        id: 'PAPER-78902',
+        symbol: 'HDFCBANK',
+        type: 'BUY',
+        shares: 50,
+        price: 702.5,
+        totalAmount: 35125,
+        timestamp: '11:15 AM',
+        reason: 'NIM Stabilization & Low Credit Risk Setup',
+      },
+    ]);
+    try {
+      localStorage.setItem('finagent_paper_holdings', JSON.stringify(initialPaper));
+      localStorage.setItem('finagent_paper_cash_balance', '927525');
+      localStorage.setItem('finagent_paper_orders', JSON.stringify([]));
+    } catch {}
   };
 
   const handleExecuteBatchOrders = (
@@ -1025,7 +1430,6 @@ export default function App() {
     }>
   ) => {
     let cashDelta = 0;
-    const newOrdersList: typeof paperOrders = [];
 
     setHoldings((prevHoldings) => {
       let currentHoldings = [...prevHoldings];
@@ -1059,24 +1463,12 @@ export default function App() {
             .map((h) => (h.symbol === order.symbol ? { ...h, shares: Math.max(0, h.shares - order.shares) } : h))
             .filter((h) => h.shares > 0);
         }
-
-        newOrdersList.push({
-          id: 'REBAL-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-          symbol: order.symbol,
-          type: order.type,
-          shares: order.shares,
-          price: order.price,
-          totalAmount: Number(total.toFixed(2)),
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          reason: order.reason,
-        });
       });
 
       return currentHoldings;
     });
 
     setCashBalance((prev) => prev + cashDelta);
-    setPaperOrders((prev) => [...newOrdersList, ...prev]);
   };
 
   const handleAddHolding = (newHolding: PortfolioHolding) => {
@@ -1444,11 +1836,16 @@ export default function App() {
         {activeView === 'papertrading' && (
           <PaperTradingLab
             currentStock={currentStock}
-            cashBalance={cashBalance}
+            cashBalance={paperCashBalance}
             orders={paperOrders}
-            holdings={holdings}
+            holdings={paperHoldings}
             stocks={stocks}
-            onExecuteOrder={handleExecuteOrder}
+            onExecuteOrder={handleExecutePaperOrder}
+            onResetPaperTrading={handleResetPaperTrading}
+            onSelectStock={(sym) => {
+              handleSearchSymbol(sym);
+              setActiveView('research');
+            }}
           />
         )}
       </main>

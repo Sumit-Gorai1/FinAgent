@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Zap,
   TrendingUp,
@@ -14,6 +14,22 @@ import {
   Activity,
   Briefcase,
   ExternalLink,
+  Search,
+  ChevronDown,
+  Check,
+  Building2,
+  X,
+  Sparkles,
+  AlertTriangle,
+  Wallet,
+  Lock,
+  Database,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  RotateCcw,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -28,6 +44,13 @@ import {
 } from 'recharts';
 import { PaperOrder, StockResearchData, PortfolioHolding } from '../types';
 import { EducationalDisclaimer } from './EducationalDisclaimer';
+import {
+  searchStockCatalog,
+  getStockDetails,
+  paginateIndianStocksCatalog,
+  POPULAR_PRICE_MAP,
+  StockSearchItem,
+} from '../utils/stockSearchResolver';
 
 interface PaperTradingLabProps {
   currentStock: StockResearchData;
@@ -35,6 +58,8 @@ interface PaperTradingLabProps {
   orders: PaperOrder[];
   holdings?: PortfolioHolding[];
   stocks?: Record<string, StockResearchData>;
+  onSelectStock?: (symbol: string) => void;
+  onResetPaperTrading?: () => void;
   onExecuteOrder: (order: {
     symbol: string;
     type: 'BUY' | 'SELL';
@@ -50,33 +75,128 @@ export const PaperTradingLab: React.FC<PaperTradingLabProps> = ({
   orders,
   holdings = [],
   stocks = {},
+  onSelectStock,
+  onResetPaperTrading,
   onExecuteOrder,
 }) => {
   const [activeTab, setActiveTab] = React.useState<'valuation' | 'backtest'>('valuation');
   const [orderType, setOrderType] = React.useState<'BUY' | 'SELL'>('BUY');
   const [sharesInput, setSharesInput] = React.useState<number>(10);
-  const [orderSymbol, setOrderSymbol] = React.useState<string>(currentStock.symbol);
-  const [rationale, setRationale] = React.useState<string>(
-    `AI Committee Consensus Signal (${currentStock.committee.status})`
-  );
+  const [orderSymbol, setOrderSymbol] = React.useState<string>(() => currentStock?.symbol || 'RELIANCE');
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState<boolean>(false);
+  const [rationale, setRationale] = React.useState<string>(() => {
+    const score = currentStock?.committee?.overallScore || 75;
+    const status = currentStock?.committee?.status || 'BUY';
+    return `AI Committee Consensus Signal (${status} • ${score}/100)`;
+  });
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
   const [successNotice, setSuccessNotice] = React.useState<string | null>(null);
+
+  // Search input ref to handle click outside
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Chart display toggles
   const [showComponents, setShowComponents] = React.useState<boolean>(true);
   const [showBenchmark, setShowBenchmark] = React.useState<boolean>(true);
 
-  // When currentStock changes, update default symbol and rationale
-  React.useEffect(() => {
-    setOrderSymbol(currentStock.symbol);
-    setRationale(`AI Committee Score: ${currentStock.committee.overallScore}/100 (${currentStock.committee.status})`);
-  }, [currentStock]);
+  // All 2,570+ Stocks Catalog Modal State
+  const [showCatalogModal, setShowCatalogModal] = React.useState<boolean>(false);
+  const [catalogSearch, setCatalogSearch] = React.useState<string>('');
+  const [catalogSector, setCatalogSector] = React.useState<string>('ALL');
+  const [catalogExchange, setCatalogExchange] = React.useState<'ALL' | 'NSE' | 'BSE' | 'DUAL'>('ALL');
+  const [catalogPage, setCatalogPage] = React.useState<number>(1);
 
-  const targetStock = stocks[orderSymbol] || (orderSymbol === currentStock.symbol ? currentStock : null);
-  const livePrice = targetStock ? targetStock.price : currentStock.price;
-  const currencySymbol = targetStock ? targetStock.currency : '₹';
+  // Paginated Catalog items for full directory modal
+  const catalogResult = useMemo(() => {
+    return paginateIndianStocksCatalog({
+      search: catalogSearch,
+      sector: catalogSector,
+      exchange: catalogExchange,
+      page: catalogPage,
+      pageSize: 20,
+      sortBy: 'symbol',
+      sortOrder: 'asc',
+    });
+  }, [catalogSearch, catalogSector, catalogExchange, catalogPage]);
+
+  // Click outside listener for dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const cleanSymbol = useMemo(() => (orderSymbol || '').trim().toUpperCase(), [orderSymbol]);
+
+  // Autocomplete search suggestions across all 2,570+ listed stocks (up to 16 matches)
+  const searchSuggestions = useMemo(() => {
+    if (!orderSymbol.trim()) {
+      return searchStockCatalog('', 16);
+    }
+    return searchStockCatalog(orderSymbol, 16);
+  }, [orderSymbol]);
+
+  // Resolve target stock data from multiple institutional data sources
+  const targetStockData: StockResearchData | null = useMemo(() => {
+    if (!cleanSymbol) return null;
+    return stocks[cleanSymbol] || (cleanSymbol === currentStock.symbol ? currentStock : null);
+  }, [cleanSymbol, stocks, currentStock]);
+
+  const catalogDetails: StockSearchItem | null = useMemo(() => {
+    if (!cleanSymbol) return null;
+    return getStockDetails(cleanSymbol);
+  }, [cleanSymbol]);
+
+  const existingHolding = useMemo(() => {
+    return holdings.find((h) => h.symbol.toUpperCase() === cleanSymbol);
+  }, [holdings, cleanSymbol]);
+
+  // Accurate multi-tier live price resolution
+  const livePrice = useMemo(() => {
+    if (targetStockData && targetStockData.price > 0) return targetStockData.price;
+    if (existingHolding && existingHolding.currentPrice > 0) return existingHolding.currentPrice;
+    if (POPULAR_PRICE_MAP[cleanSymbol]) return POPULAR_PRICE_MAP[cleanSymbol];
+    if (catalogDetails && catalogDetails.price > 0) return catalogDetails.price;
+    if (currentStock.symbol.toUpperCase() === cleanSymbol) return currentStock.price;
+    return 100.0;
+  }, [cleanSymbol, targetStockData, existingHolding, catalogDetails, currentStock]);
+
+  const stockName = targetStockData?.name || catalogDetails?.name || existingHolding?.name || cleanSymbol;
+  const stockSector = targetStockData?.sectorMacro?.sectorName || catalogDetails?.sector || existingHolding?.sector || 'General';
+  const currencySymbol = targetStockData?.currency || catalogDetails?.currency || '₹';
 
   const estimatedTotal = Number((sharesInput * livePrice).toFixed(2));
+  const maxAffordableShares = livePrice > 0 ? Math.floor(cashBalance / livePrice) : 0;
+
+  // Handle target symbol selection from search, quick chips, or catalog modal
+  const handleSelectTargetSymbol = (sym: string) => {
+    const upper = sym.trim().toUpperCase();
+    if (!upper) return;
+    setOrderSymbol(upper);
+    setIsDropdownOpen(false);
+
+    // Update rationale to match selected stock
+    const matched = stocks[upper];
+    if (matched?.committee) {
+      setRationale(`AI Committee Score: ${matched.committee.overallScore}/100 (${matched.committee.status})`);
+    } else {
+      const held = holdings.find((h) => h.symbol.toUpperCase() === upper);
+      if (held?.score) {
+        setRationale(`Portfolio Conviction Signal (${held.score}/100 Score)`);
+      } else {
+        const cat = getStockDetails(upper);
+        if (cat) {
+          setRationale(`Target: ${cat.name} (${upper}) • Sector: ${cat.sector}`);
+        } else {
+          setRationale(`Simulated Execution for ${upper} • Multi-Agent Signal`);
+        }
+      }
+    }
+  };
 
   // Current equity value from holdings
   const currentHoldingsValue = React.useMemo(() => {
@@ -218,26 +338,40 @@ export const PaperTradingLab: React.FC<PaperTradingLabProps> = ({
 
   const handleOrderSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (sharesInput <= 0) return;
+    const cleanSym = (orderSymbol || '').trim().toUpperCase();
+    if (!cleanSym) {
+      alert('Please enter or select a valid Target Symbol.');
+      return;
+    }
+    if (sharesInput <= 0) {
+      alert('Please specify a positive quantity of shares (minimum 1 share).');
+      return;
+    }
 
     if (orderType === 'BUY' && estimatedTotal > cashBalance) {
       alert(`Insufficient virtual cash! Order requires ₹${estimatedTotal.toLocaleString()}, available: ₹${cashBalance.toLocaleString()}`);
       return;
     }
 
+    if (orderType === 'SELL' && (!existingHolding || existingHolding.shares <= 0)) {
+      if (!window.confirm(`Notice: You do not currently hold any shares of ${cleanSym}. Executing this order will record as a simulated exit/short order. Proceed?`)) {
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setTimeout(() => {
       onExecuteOrder({
-        symbol: orderSymbol,
+        symbol: cleanSym,
         type: orderType,
         shares: Number(sharesInput),
         price: livePrice,
-        reason: rationale,
+        reason: rationale || `Virtual ${orderType} order for ${cleanSym} @ ₹${livePrice.toLocaleString()}`,
       });
       setIsSubmitting(false);
-      setSuccessNotice(`Successfully executed ${orderType} order for ${sharesInput} shares of ${orderSymbol}!`);
-      setTimeout(() => setSuccessNotice(null), 4000);
-    }, 400);
+      setSuccessNotice(`Successfully executed ${orderType} order for ${sharesInput} shares of ${cleanSym} @ ₹${livePrice.toLocaleString()}!`);
+      setTimeout(() => setSuccessNotice(null), 4500);
+    }, 350);
   };
 
   // Backtest historical curve data for Tab 2
@@ -313,17 +447,39 @@ export const PaperTradingLab: React.FC<PaperTradingLabProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner with Real-time Portfolio Capital Overview */}
+      {/* Top Header & Dynamic Navigation */}
       <div className="p-4 sm:p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-cyan-400 mb-1">
-            <Zap className="w-4 h-4" />
-            <span>FINAGENT EXECUTION LAB & MARK-TO-MARKET VALUATION</span>
+          <div className="flex items-center gap-2 text-xs font-mono text-cyan-400 mb-1 flex-wrap">
+            <Zap className="w-4 h-4 text-cyan-400" />
+            <span>FINAGENT EXECUTION LAB &amp; MARK-TO-MARKET VALUATION</span>
+            <span className="px-2 py-0.5 text-[10px] rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800/80 font-bold flex items-center gap-1">
+              <ShieldAlert className="w-3 h-3 text-indigo-400" />
+              <span>100% ISOLATED FROM CORE PORTFOLIO</span>
+            </span>
           </div>
-          <h2 className="text-xl font-bold text-white tracking-tight">
-            Virtual Paper Trading & Portfolio Value Over Time
-          </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Test AI-generated conviction signals with zero risk using virtual capital, track real-time portfolio curve progression, and verify benchmark performance.
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-xl font-bold text-white tracking-tight">
+              Virtual Paper Trading Simulation Sandbox
+            </h2>
+            {onResetPaperTrading && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Reset virtual paper trading sandbox to ₹10,00,000 initial virtual capital? Your real core portfolio will NOT be touched.')) {
+                    onResetPaperTrading();
+                  }
+                }}
+                className="px-2.5 py-1 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 text-slate-300 hover:text-white text-[11px] font-mono flex items-center gap-1.5 transition-colors shadow-sm"
+                title="Reset virtual paper balance and positions without affecting core portfolio"
+              >
+                <RotateCcw className="w-3 h-3 text-cyan-400" />
+                <span>Reset Paper Sandbox (₹10L)</span>
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-slate-400 mt-1">
+            Simulated execution sandbox completely separate from your real portfolio. Trades executed here test AI conviction with zero real-capital risk.
           </p>
         </div>
 
@@ -331,7 +487,7 @@ export const PaperTradingLab: React.FC<PaperTradingLabProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {/* Total Portfolio Value */}
           <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-            <span className="text-[10px] text-slate-400 font-mono block">TOTAL PORTFOLIO VALUE</span>
+            <span className="text-[10px] text-slate-400 font-mono block">SANDBOX TOTAL VALUATION</span>
             <span className="text-lg font-bold font-mono text-white">
               ₹{currentTotalPortfolioValue.toLocaleString()}
             </span>
@@ -343,34 +499,34 @@ export const PaperTradingLab: React.FC<PaperTradingLabProps> = ({
 
           {/* Virtual Cash Balance */}
           <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-            <span className="text-[10px] text-slate-400 font-mono block">VIRTUAL CASH</span>
+            <span className="text-[10px] text-slate-400 font-mono block">SANDBOX VIRTUAL CASH</span>
             <span className="text-lg font-bold font-mono text-emerald-400">
               ₹{cashBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </span>
             <span className="text-[10px] text-slate-500 font-mono block mt-0.5">
-              {cashAllocationPercent}% of Portfolio
+              {cashAllocationPercent}% of Sandbox
             </span>
           </div>
 
           {/* Holdings Equity Value */}
           <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-            <span className="text-[10px] text-slate-400 font-mono block">EQUITY HOLDINGS</span>
+            <span className="text-[10px] text-slate-400 font-mono block">PAPER POSITIONS</span>
             <span className="text-lg font-bold font-mono text-indigo-400">
               ₹{currentHoldingsValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </span>
             <span className="text-[10px] text-slate-500 font-mono block mt-0.5">
-              {holdings.length} Active Positions ({equityAllocationPercent}%)
+              {holdings.length} Sandbox Positions ({equityAllocationPercent}%)
             </span>
           </div>
 
           {/* Orders Executed */}
           <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-            <span className="text-[10px] text-slate-400 font-mono block">EXECUTED TRADES</span>
+            <span className="text-[10px] text-slate-400 font-mono block">PAPER TRADES</span>
             <span className="text-lg font-bold font-mono text-cyan-400">
               {orders.length}
             </span>
             <span className="text-[10px] text-slate-500 font-mono block mt-0.5">
-              Paper Ledger Logged
+              Isolated Ledger
             </span>
           </div>
         </div>
@@ -431,38 +587,358 @@ export const PaperTradingLab: React.FC<PaperTradingLabProps> = ({
                 </button>
               </div>
 
-              {/* Symbol & Market Price */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-slate-400 block mb-1">Target Symbol</label>
-                  <input
-                    type="text"
-                    value={orderSymbol}
-                    onChange={(e) => setOrderSymbol(e.target.value.toUpperCase())}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold"
-                  />
+              {/* Target Symbol & Live Quote Search Cockpit */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-slate-200 font-semibold flex items-center gap-1.5 text-xs">
+                      <Building2 className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Target Symbol (NSE / BSE)</span>
+                    </label>
+                    <div className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-full font-mono">
+                      <Lock className="w-2.5 h-2.5 text-emerald-400" />
+                      <span>Locked (Won&apos;t auto-reset)</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {currentStock?.symbol && currentStock.symbol.toUpperCase() !== cleanSymbol && (
+                      <button
+                        type="button"
+                        onClick={() => handleSelectTargetSymbol(currentStock.symbol)}
+                        className="text-[10px] text-slate-400 hover:text-cyan-300 flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 hover:border-cyan-500/50"
+                        title="Sync symbol with current cockpit analysis"
+                      >
+                        <RefreshCw className="w-2.5 h-2.5 text-cyan-400" />
+                        <span>Sync Cockpit ({currentStock.symbol})</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowCatalogModal(true)}
+                      className="px-2 py-1 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-300 hover:text-white text-[11px] font-mono font-medium flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                      <Database className="w-3 h-3 text-indigo-400" />
+                      <span>Browse All 2,570+ Stocks</span>
+                    </button>
+                    {onSelectStock && cleanSymbol && (
+                      <button
+                        type="button"
+                        onClick={() => onSelectStock(cleanSymbol)}
+                        className="text-[10px] text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 transition-colors"
+                      >
+                        <span>Analyze in Cockpit</span>
+                        <ArrowUpRight className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <label className="text-slate-400 block mb-1">Market Price (NSE)</label>
-                  <div className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold">
-                    {currencySymbol}{livePrice.toLocaleString()}
+
+                {/* Target Symbol Input with Interactive Autocomplete Dropdown */}
+                <div ref={searchContainerRef} className="relative">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={orderSymbol}
+                      onFocus={() => setIsDropdownOpen(true)}
+                      onChange={(e) => {
+                        setOrderSymbol(e.target.value.toUpperCase());
+                        setIsDropdownOpen(true);
+                      }}
+                      placeholder="Type ticker or company name across NSE & BSE (e.g. TCS, INFY, RELIANCE)..."
+                      className="w-full bg-slate-950 border border-slate-700/80 hover:border-cyan-500 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 rounded-xl py-2.5 pl-9 pr-24 text-white font-mono font-bold tracking-wider placeholder:text-slate-600 transition-all text-xs"
+                    />
+                    <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+
+                    <div className="absolute right-2 top-2 flex items-center gap-1">
+                      {orderSymbol && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOrderSymbol('');
+                            setIsDropdownOpen(true);
+                          }}
+                          className="p-1 rounded-md text-slate-500 hover:text-white"
+                          title="Clear Symbol"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowCatalogModal(true)}
+                        className="px-2 py-1 rounded bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 text-[10px] font-mono flex items-center gap-1 border border-indigo-700/50"
+                        title="Browse All 2,570+ Stocks"
+                      >
+                        <Database className="w-2.5 h-2.5" />
+                        <span>All 2,570+</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        className="px-1.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-white text-[10px] font-mono flex items-center gap-0.5"
+                      >
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Autocomplete Suggestions Dropdown */}
+                  {isDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto divide-y divide-slate-800/80 animate-fadeIn font-mono">
+                      <div className="p-2 bg-slate-950/90 text-[10px] text-slate-400 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm">
+                        <span>SEARCH MATCHES (2,570+ LISTED EQUITIES &amp; ETFS)</span>
+                        <span>Click to Select</span>
+                      </div>
+                      {searchSuggestions.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-slate-500">
+                          No exact symbol matching &quot;{orderSymbol}&quot; — you can still trade it or browse below
+                        </div>
+                      ) : (
+                        searchSuggestions.map((item) => (
+                          <div
+                            key={item.symbol}
+                            onMouseDown={() => handleSelectTargetSymbol(item.symbol)}
+                            className={`p-2.5 hover:bg-slate-800/80 cursor-pointer flex items-center justify-between transition-colors ${
+                              item.symbol.toUpperCase() === cleanSymbol ? 'bg-cyan-950/40 text-cyan-300' : 'text-slate-200'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-white text-xs">{item.symbol}</span>
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">
+                                  {item.exchange}
+                                </span>
+                                {item.isPopular && (
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-950/80 text-amber-300 border border-amber-800/60 font-semibold">
+                                    Nifty 50
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-400 truncate max-w-[220px]">
+                                {item.name} • {item.sector}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-bold text-white text-xs">
+                                ₹{item.price.toLocaleString()}
+                              </span>
+                              {item.marginOfSafetyPercent !== undefined && item.marginOfSafetyPercent > 0 && (
+                                <div className="text-[9px] text-emerald-400">
+                                  +{item.marginOfSafetyPercent}% MoS
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setIsDropdownOpen(false);
+                          setShowCatalogModal(true);
+                        }}
+                        className="w-full p-2.5 bg-indigo-950/90 hover:bg-indigo-900 text-indigo-200 text-xs font-mono font-semibold flex items-center justify-center gap-2 transition-colors border-t border-slate-800 sticky bottom-0"
+                      >
+                        <Database className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Browse Complete 2,570+ Indian Stock &amp; ETF Catalog &rarr;</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Target Stock Dossier & Live Quote Banner */}
+                <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-bold text-white tracking-wide">{cleanSymbol || 'SELECT SYMBOL'}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono">
+                          NSE: ACTIVE
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-300 font-sans mt-0.5 truncate max-w-[240px]">
+                        {stockName}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-sans">
+                        {stockSector}
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 font-mono block">MARKET PRICE</span>
+                      <span className="text-lg font-bold text-cyan-400 font-mono">
+                        {currencySymbol}{livePrice.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Position Ownership Context */}
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <Briefcase className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Sandbox Paper Position:</span>
+                    </div>
+                    {existingHolding ? (
+                      <span className="text-emerald-400 font-bold">
+                        Holding {existingHolding.shares} sh @ ₹{existingHolding.avgBuyPrice.toLocaleString()} (Paper Sandbox • P&L: {existingHolding.unrealizedPnL >= 0 ? '+' : ''}₹{existingHolding.unrealizedPnL.toLocaleString()})
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">
+                        0 shares (Not held in paper sandbox)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Target Symbol Chips: Active Holdings & Popular Leaders */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                    <span>Quick Select Paper Positions:</span>
+                    <span>{holdings.length} Sandbox Positions</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
+                    {holdings.length === 0 ? (
+                      <span className="text-[10px] text-slate-500 font-mono">No active paper positions in sandbox</span>
+                    ) : (
+                      holdings.map((h) => {
+                        const isSelected = h.symbol.toUpperCase() === cleanSymbol;
+                        return (
+                          <button
+                            key={h.symbol}
+                            type="button"
+                            onClick={() => handleSelectTargetSymbol(h.symbol)}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-mono transition-all flex items-center gap-1 border ${
+                              isSelected
+                                ? 'bg-cyan-600 text-white font-bold border-cyan-400 shadow-sm'
+                                : 'bg-slate-950 hover:bg-slate-800 text-slate-300 border-slate-800'
+                            }`}
+                          >
+                            <span>{h.symbol}</span>
+                            <span className="text-[9px] opacity-75">({h.shares} sh)</span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1 text-[10px] font-mono text-slate-400 pt-1 flex-wrap">
+                    <span>Popular:</span>
+                    {[
+                      'RELIANCE',
+                      'TCS',
+                      'HDFCBANK',
+                      'INFY',
+                      'ICICIBANK',
+                      'SBIN',
+                      'BHARTIARTL',
+                      'ITC',
+                      'LT',
+                      'TATAMOTORS',
+                      'MARUTI',
+                      'TITAN',
+                      'HAL',
+                      'BEL',
+                      'NIFTYBEES',
+                      'GOLDBEES',
+                    ].map((sym) => (
+                      <button
+                        key={sym}
+                        type="button"
+                        onClick={() => handleSelectTargetSymbol(sym)}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                          sym === cleanSymbol
+                            ? 'bg-cyan-900 text-cyan-200 border border-cyan-700 font-bold'
+                            : 'bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {sym}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setShowCatalogModal(true)}
+                      className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-950 hover:bg-indigo-900 text-indigo-300 border border-indigo-800/80 font-semibold transition-colors flex items-center gap-1"
+                    >
+                      <Database className="w-2.5 h-2.5" />
+                      <span>+ All 2,570+</span>
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* Quantity Shares */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-slate-400">Quantity (Shares)</label>
-                  <span className="text-[11px] text-slate-500">Lot Size: 1</span>
+              {/* Quantity Shares with Sizing Presets */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-slate-300 font-semibold">Quantity (Shares)</label>
+                  {orderType === 'BUY' ? (
+                    <span className="text-[10px] text-cyan-400 font-mono">
+                      Max Affordable: {maxAffordableShares.toLocaleString()} sh
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-amber-400 font-mono">
+                      Held Shares: {(existingHolding?.shares || 0).toLocaleString()} sh
+                    </span>
+                  )}
                 </div>
-                <input
-                  type="number"
-                  min="1"
-                  value={sharesInput}
-                  onChange={(e) => setSharesInput(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold"
-                />
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    value={sharesInput}
+                    onChange={(e) => setSharesInput(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full bg-slate-950 border border-slate-700/80 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 rounded-xl p-2.5 text-white font-mono font-bold text-sm"
+                  />
+
+                  {/* Quick Sizing Buttons */}
+                  {orderType === 'BUY' ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      {[5, 10, 25, 50].map((qty) => (
+                        <button
+                          key={qty}
+                          type="button"
+                          onClick={() => setSharesInput(qty)}
+                          className={`px-2 py-2 rounded-lg text-[10px] font-mono border transition-colors ${
+                            sharesInput === qty
+                              ? 'bg-cyan-600 text-white border-cyan-400 font-bold'
+                              : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800'
+                          }`}
+                        >
+                          +{qty}
+                        </button>
+                      ))}
+                      {maxAffordableShares > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSharesInput(maxAffordableShares)}
+                          className="px-2 py-2 rounded-lg text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900"
+                        >
+                          Max
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 shrink-0">
+                      {[0.25, 0.5, 1.0].map((frac) => {
+                        const sharesHeld = existingHolding?.shares || 0;
+                        const targetShares = Math.max(1, Math.round(sharesHeld * frac));
+                        return (
+                          <button
+                            key={frac}
+                            type="button"
+                            disabled={sharesHeld === 0}
+                            onClick={() => setSharesInput(targetShares)}
+                            className="px-2 py-2 rounded-lg text-[10px] font-mono border bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800 disabled:opacity-40"
+                          >
+                            {frac === 1.0 ? '100% (All)' : `${frac * 100}%`}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Order Rationale */}
@@ -476,25 +952,47 @@ export const PaperTradingLab: React.FC<PaperTradingLabProps> = ({
                 />
               </div>
 
-              {/* Cost Calculation Summary */}
-              <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 space-y-1 text-slate-400 text-xs">
+              {/* Cost Calculation Summary & Balance Guard */}
+              <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 space-y-1.5 text-slate-400 text-xs">
                 <div className="flex items-center justify-between">
                   <span>Estimated Capital Required:</span>
-                  <span className="text-white font-bold">₹{estimatedTotal.toLocaleString()}</span>
+                  <span className="text-white font-bold text-sm">₹{estimatedTotal.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Available Cash:</span>
-                  <span className="text-emerald-400 font-semibold">₹{cashBalance.toLocaleString()}</span>
+                  <span>Available Virtual Cash:</span>
+                  <span className={`font-semibold ${estimatedTotal > cashBalance && orderType === 'BUY' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    ₹{cashBalance.toLocaleString()}
+                  </span>
                 </div>
+
+                {orderType === 'BUY' && estimatedTotal > cashBalance && (
+                  <div className="pt-1 text-[11px] text-rose-400 flex items-center gap-1 font-mono">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Insufficient Cash! Shortfall: ₹{(estimatedTotal - cashBalance).toLocaleString()}</span>
+                  </div>
+                )}
+
+                {orderType === 'SELL' && (!existingHolding || existingHolding.shares === 0) && (
+                  <div className="pt-1 text-[11px] text-amber-400 flex items-center gap-1 font-mono">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>You hold 0 shares of {cleanSymbol}. Selling will initiate simulated short.</span>
+                  </div>
+                )}
               </div>
 
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-900/30 transition-all flex items-center justify-center gap-2"
+                disabled={isSubmitting || (orderType === 'BUY' && estimatedTotal > cashBalance)}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-900/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Zap className="w-4 h-4" />
-                {isSubmitting ? 'Transmitting Order...' : `Execute Paper ${orderType} Order`}
+                <span>
+                  {isSubmitting
+                    ? 'Transmitting Order...'
+                    : orderType === 'BUY' && estimatedTotal > cashBalance
+                    ? 'Insufficient Virtual Cash'
+                    : `Execute Paper ${orderType} Order (${cleanSymbol})`}
+                </span>
               </button>
             </form>
           </div>
@@ -883,13 +1381,18 @@ export const PaperTradingLab: React.FC<PaperTradingLabProps> = ({
           {/* Active Paper Portfolio Holdings Summary */}
           {holdings.length > 0 && (
             <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
-                  <Briefcase className="w-3.5 h-3.5 text-cyan-400" />
-                  ACTIVE PAPER HOLDINGS ({holdings.length} Positions)
-                </span>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                    <Briefcase className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>ACTIVE SIMULATED PAPER HOLDINGS ({holdings.length} Positions)</span>
+                  </span>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 font-mono font-semibold">
+                    100% Isolated from Core Portfolio
+                  </span>
+                </div>
                 <span className="text-[10px] font-mono text-slate-400">
-                  Total Equity: ₹{currentHoldingsValue.toLocaleString()}
+                  Total Paper Equity: ₹{currentHoldingsValue.toLocaleString()}
                 </span>
               </div>
 
@@ -934,6 +1437,261 @@ export const PaperTradingLab: React.FC<PaperTradingLabProps> = ({
           )}
         </div>
       </div>
+
+      {/* ================================================================= */}
+      {/* BROWSE ALL 2,570+ STOCKS & ETFS CATALOG MODAL                     */}
+      {/* ================================================================= */}
+      {showCatalogModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-5 animate-fadeIn">
+          <div className="relative w-full max-w-4xl max-h-[90vh] bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/90">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                  <Database className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white tracking-wide flex items-center gap-2">
+                    <span>Indian Exchange Directory</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-950 border border-indigo-800 text-indigo-300 font-mono">
+                      2,570+ Stocks &amp; ETFs
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Select any listed stock across NSE &amp; BSE to execute virtual paper trades without automatic resets.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCatalogModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Close Modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Search & Filters */}
+            <div className="p-4 bg-slate-900/95 border-b border-slate-800 space-y-3">
+              <div className="flex items-center gap-2 flex-col sm:flex-row">
+                {/* Search input */}
+                <div className="relative flex-1 w-full">
+                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={catalogSearch}
+                    onChange={(e) => {
+                      setCatalogSearch(e.target.value);
+                      setCatalogPage(1);
+                    }}
+                    placeholder="Search by ticker (e.g. RELIANCE), company name (Tata), BSE Code (500325), or ISIN..."
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 rounded-xl py-2 pl-9 pr-10 text-white font-mono text-xs placeholder:text-slate-600"
+                    autoFocus
+                  />
+                  {catalogSearch && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCatalogSearch('');
+                        setCatalogPage(1);
+                      }}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Exchange filter buttons */}
+                <div className="flex items-center gap-1 self-start sm:self-auto bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-mono">
+                  {(['ALL', 'NSE', 'BSE', 'DUAL'] as const).map((ex) => (
+                    <button
+                      key={ex}
+                      type="button"
+                      onClick={() => {
+                        setCatalogExchange(ex);
+                        setCatalogPage(1);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                        catalogExchange === ex
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {ex === 'ALL' ? 'All (2,570+)' : ex}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sector quick pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-mono no-scrollbar">
+                <span className="text-slate-500 text-[10px] shrink-0 flex items-center gap-1">
+                  <Filter className="w-3 h-3" /> Sector:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCatalogSector('ALL');
+                    setCatalogPage(1);
+                  }}
+                  className={`px-2 py-0.5 rounded-lg shrink-0 transition-colors ${
+                    catalogSector === 'ALL'
+                      ? 'bg-cyan-950 text-cyan-300 border border-cyan-800 font-bold'
+                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  All Sectors
+                </button>
+                {catalogResult.sectors.slice(0, 10).map((sec) => (
+                  <button
+                    key={sec.name}
+                    type="button"
+                    onClick={() => {
+                      setCatalogSector(sec.name);
+                      setCatalogPage(1);
+                    }}
+                    className={`px-2 py-0.5 rounded-lg shrink-0 transition-colors ${
+                      catalogSector === sec.name
+                        ? 'bg-cyan-950 text-cyan-300 border border-cyan-800 font-bold'
+                        : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    {sec.name} ({sec.count})
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Results List */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-800/80 p-3 sm:p-4">
+              {catalogResult.items.length === 0 ? (
+                <div className="p-8 text-center text-slate-400">
+                  <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto mb-2 opacity-80" />
+                  <p className="text-sm font-semibold text-white">No listed stocks matched your filters</p>
+                  <p className="text-xs text-slate-500 mt-1">Try clearing the search term or resetting the sector filter.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCatalogSearch('');
+                      setCatalogSector('ALL');
+                      setCatalogExchange('ALL');
+                      setCatalogPage(1);
+                    }}
+                    className="mt-3 px-3 py-1.5 rounded-lg bg-slate-800 text-cyan-300 text-xs font-mono hover:bg-slate-700"
+                  >
+                    Reset All Filters
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  {catalogResult.items.map((item) => {
+                    const isSelected = item.symbol.toUpperCase() === cleanSymbol;
+                    return (
+                      <div
+                        key={item.symbol}
+                        className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-cyan-950/30 border-cyan-500/60 shadow-md shadow-cyan-950/40'
+                            : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-950'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1 pr-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-white font-mono text-sm tracking-wide">
+                              {item.symbol}
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono">
+                              {item.exchange}
+                            </span>
+                            {item.isPopular && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-950/80 text-amber-300 border border-amber-800/50 font-semibold font-mono">
+                                Nifty 50
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-slate-300 truncate mt-0.5">
+                            {item.name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-2">
+                            <span>{item.sector}</span>
+                            {item.bseCode && <span className="opacity-60">BSE: {item.bseCode}</span>}
+                          </div>
+                        </div>
+
+                        <div className="text-right flex flex-col items-end gap-1.5 shrink-0">
+                          <div className="font-bold text-white font-mono text-xs">
+                            ₹{item.price.toLocaleString()}
+                          </div>
+                          {item.marginOfSafetyPercent !== undefined && item.marginOfSafetyPercent > 0 && (
+                            <span className="text-[9px] text-emerald-400 font-mono font-medium">
+                              +{item.marginOfSafetyPercent}% MoS
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleSelectTargetSymbol(item.symbol);
+                              setShowCatalogModal(false);
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                              isSelected
+                                ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                                : 'bg-slate-800 hover:bg-cyan-600 text-slate-200 hover:text-white'
+                            }`}
+                          >
+                            {isSelected ? (
+                              <>
+                                <Check className="w-3 h-3" />
+                                <span>Selected</span>
+                              </>
+                            ) : (
+                              <span>Select to Trade</span>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Pagination Footer */}
+            <div className="p-3 sm:p-4 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs font-mono">
+              <span className="text-slate-400">
+                Showing {catalogResult.items.length > 0 ? (catalogResult.page - 1) * 20 + 1 : 0} -{' '}
+                {Math.min(catalogResult.page * 20, catalogResult.total)} of{' '}
+                <span className="text-white font-bold">{catalogResult.total.toLocaleString()}</span> stocks
+              </span>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={catalogResult.page <= 1}
+                  onClick={() => setCatalogPage((p) => Math.max(1, p - 1))}
+                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="px-2 py-1 text-slate-300">
+                  Page <strong className="text-white">{catalogResult.page}</strong> of{' '}
+                  <strong className="text-white">{catalogResult.totalPages}</strong>
+                </span>
+                <button
+                  type="button"
+                  disabled={catalogResult.page >= catalogResult.totalPages}
+                  onClick={() => setCatalogPage((p) => Math.min(catalogResult.totalPages, p + 1))}
+                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

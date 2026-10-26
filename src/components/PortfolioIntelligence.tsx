@@ -371,10 +371,13 @@ export const PortfolioIntelligence: React.FC<PortfolioIntelligenceProps> = ({
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
             <span className="font-bold tracking-wider">PORTFOLIO INTELLIGENCE & REAL-TIME WEALTH HUB</span>
           </div>
-          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            <span>Dynamic Portfolio & Asset Intelligence</span>
+          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2 flex-wrap">
+            <span>Dynamic Portfolio &amp; Asset Intelligence</span>
             <span className="px-2 py-0.5 text-[10px] rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-semibold">
               Live MTM Active
+            </span>
+            <span className="px-2 py-0.5 text-[10px] rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono font-medium">
+              Core Portfolio • Isolated from Paper Trading
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">

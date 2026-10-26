@@ -1983,6 +1983,9 @@ export function filterIndianStocks(options: {
   };
 }
 
+// Export paginateIndianStocksCatalog alias for catalog browsing
+export const paginateIndianStocksCatalog = filterIndianStocks;
+
 /**
  * Splits text into before, match, and after segments based on query for visual highlighting.
  */
