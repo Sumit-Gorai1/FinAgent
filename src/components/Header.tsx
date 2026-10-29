@@ -21,13 +21,14 @@ import {
   LayoutGrid,
   Layers,
   Database,
+  Flame,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { DynamicLogo } from './DynamicLogo';
 
 interface HeaderProps {
-  activeView: 'research' | 'workflow' | 'watchlist' | 'portfolio' | 'papertrading' | 'all-stocks' | 'sectors';
-  setActiveView: (view: 'research' | 'workflow' | 'watchlist' | 'portfolio' | 'papertrading' | 'all-stocks' | 'sectors') => void;
+  activeView: 'research' | 'workflow' | 'watchlist' | 'portfolio' | 'papertrading' | 'all-stocks' | 'sectors' | 'chartink';
+  setActiveView: (view: 'research' | 'workflow' | 'watchlist' | 'portfolio' | 'papertrading' | 'all-stocks' | 'sectors' | 'chartink') => void;
   selectedSymbol: string;
   onSearchSymbol?: (sym: string) => void;
   onOpenCompliance: () => void;
@@ -436,6 +437,22 @@ export const Header: React.FC<HeaderProps> = ({
               <span>All Indian Stocks</span>
               <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
                 2,570+
+              </span>
+            </button>
+
+            <button
+              id="nav-chartink-tab"
+              onClick={() => setActiveView('chartink')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
+                activeView === 'chartink'
+                  ? 'bg-gradient-to-r from-amber-600 via-rose-600 to-indigo-600 text-white shadow-sm font-semibold'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Flame className="w-3.5 h-3.5 text-amber-400" />
+              <span>Chartink Breakouts</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-bold text-[10px]">
+                LIVE
               </span>
             </button>
 

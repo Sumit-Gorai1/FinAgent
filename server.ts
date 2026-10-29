@@ -32,6 +32,12 @@ import {
 } from './server/liveMarketService';
 import { handleGetLiveNews } from './server/liveNewsService';
 import { handleFinBertAnalyze, handleGetFinBertModelInfo } from './server/finbertService';
+import {
+  fetchChartinkScreener,
+  handleChartinkWebhookPayload,
+  getRecentChartinkWebhookAlerts,
+  CHARTINK_PRESET_SCREENS,
+} from './server/chartinkService';
 
 dotenv.config();
 
@@ -1472,6 +1478,50 @@ Return strictly valid JSON:
       activeUserSessions.delete(token);
     }
     return res.json({ success: true, message: 'Logged out successfully.' });
+  });
+
+  // --- Chartink Screener & Webhook Integration ---
+  app.get('/api/chartink/scanners', (_req, res) => {
+    res.json({ success: true, presets: CHARTINK_PRESET_SCREENS });
+  });
+
+  app.get('/api/chartink/screener', async (req, res) => {
+    try {
+      const urlOrSlug = (req.query.url as string) || (req.query.slug as string) || 'https://chartink.com/screener/trendline-breakout';
+      const scanClause = req.query.scan_clause as string | undefined;
+      const forceRefresh = req.query.refresh === 'true';
+      const data = await fetchChartinkScreener(urlOrSlug, forceRefresh, scanClause);
+      return res.json(data);
+    } catch (err: any) {
+      console.error('Error in /api/chartink/screener:', err);
+      return res.status(500).json({ success: false, error: err.message || 'Failed to fetch Chartink screener' });
+    }
+  });
+
+  app.post('/api/chartink/screener/run', async (req, res) => {
+    try {
+      const { url, scanClause } = req.body || {};
+      const data = await fetchChartinkScreener(url || 'https://chartink.com/screener/trendline-breakout', true, scanClause);
+      return res.json(data);
+    } catch (err: any) {
+      console.error('Error in /api/chartink/screener/run:', err);
+      return res.status(500).json({ success: false, error: err.message || 'Failed to execute Chartink scan' });
+    }
+  });
+
+  // Chartink Alert Webhook Receiver
+  app.post('/api/chartink/webhook', (req, res) => {
+    try {
+      const result = handleChartinkWebhookPayload(req.body);
+      return res.json(result);
+    } catch (err: any) {
+      console.error('Error in /api/chartink/webhook:', err);
+      return res.status(500).json({ success: false, error: err.message || 'Failed to process webhook alert' });
+    }
+  });
+
+  app.get('/api/chartink/webhook/alerts', (_req, res) => {
+    return res.json({ success: true, alerts: getRecentChartinkWebhookAlerts() });
   });
 
   // Vite development middleware or static production serving

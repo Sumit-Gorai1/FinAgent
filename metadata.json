@@ -1,6 +1,6 @@
 {
   "name": "FINAGENT — Autonomous Multi-Agent Stock Research",
-  "description": "Autonomous multi-agent stock research and dynamic portfolio intelligence platform featuring direct NSE and BSE market data pipeline integration, dual-exchange quotes, inter-exchange arbitrage monitoring, Level-2 depth, valuation sensitivity modeling, Autonomous Rebalancer, Paper Trading Lab, and complete ETF price tracking.",
+  "description": "Autonomous multi-agent stock research and dynamic portfolio intelligence platform featuring direct NSE/BSE pipeline feeds, Chartink Trendline Breakout integration, dual-exchange quotes, inter-exchange arbitrage monitoring, Level-2 depth, valuation sensitivity modeling, Autonomous Rebalancer, and isolated Paper Trading Lab.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

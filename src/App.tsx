@@ -18,6 +18,7 @@ import { DynamicMarketStrip } from './components/DynamicMarketStrip';
 import { IndianExchangeStocksModal } from './components/IndianExchangeStocksModal';
 import { IndianStocksDirectoryView } from './components/IndianStocksDirectoryView';
 import { SectorHeatmap } from './components/SectorHeatmap';
+import { ChartinkScreenerView } from './components/ChartinkScreenerView';
 import { DashboardSnapshotsModal } from './components/DashboardSnapshotsModal';
 import { SourcesModal } from './components/SourcesModal';
 import { DynamicBackgroundVideo } from './components/DynamicBackgroundVideo';
@@ -25,7 +26,7 @@ import { playAlertChime } from './utils/soundAlert';
 
 export default function App() {
   const [activeView, setActiveView] = React.useState<
-    'research' | 'workflow' | 'watchlist' | 'portfolio' | 'papertrading' | 'all-stocks' | 'sectors'
+    'research' | 'workflow' | 'watchlist' | 'portfolio' | 'papertrading' | 'all-stocks' | 'sectors' | 'chartink'
   >('research');
 
   const [stocks, setStocks] = React.useState<Record<string, StockResearchData>>(() => {
@@ -1745,6 +1746,22 @@ export default function App() {
               setActiveView('research');
             }}
             selectedSymbol={selectedSymbol}
+          />
+        )}
+
+        {activeView === 'chartink' && (
+          <ChartinkScreenerView
+            onSelectStock={(sym) => {
+              handleSearchSymbol(sym);
+              setActiveView('research');
+            }}
+            onOpenPaperTrade={(sym) => {
+              handleSearchSymbol(sym);
+              setActiveView('papertrading');
+            }}
+            onAddToWatchlist={handleAddToWatchlist}
+            watchlist={watchlist}
+            stocks={stocks}
           />
         )}
 
